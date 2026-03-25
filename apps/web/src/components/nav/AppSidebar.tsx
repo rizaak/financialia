@@ -18,7 +18,7 @@ export function AppSidebar({ onNavigate }: Props) {
           className="block text-lg font-bold tracking-tight text-zinc-900"
           onClick={onLink}
         >
-          Financialia
+          FinancialIA
         </Link>
         <p className="mt-0.5 text-xs text-zinc-500">Finanzas personales</p>
       </div>

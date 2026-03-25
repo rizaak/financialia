@@ -22,7 +22,7 @@ export function AppTopBar({ user, onLogout, onNavigate, onOpenSidebar }: Props) 
         </svg>
       </button>
       <span className="min-w-0 flex-1 truncate text-center text-sm font-semibold text-zinc-900 lg:hidden">
-        Financialia
+        FinancialIA
       </span>
       <div className="ml-auto shrink-0">
         <UserMenu user={user} onLogout={onLogout} onNavigate={onNavigate} align="right" />

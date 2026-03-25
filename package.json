@@ -1,5 +1,5 @@
 {
-  "name": "financialia",
+  "name": "financial-ia",
   "private": true,
   "workspaces": [
     "apps/*"
@@ -12,10 +12,10 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
-    "dev:api": "npm run start:dev -w @financialia/api",
-    "dev:web": "npm run dev -w @financialia/web",
-    "build:api": "npm run build -w @financialia/api",
-    "build:web": "npm run build -w @financialia/web",
+    "dev:api": "npm run start:dev -w @financial-ia/api",
+    "dev:web": "npm run dev -w @financial-ia/web",
+    "build:api": "npm run build -w @financial-ia/api",
+    "build:web": "npm run build -w @financial-ia/web",
     "prepare": "prisma generate"
   },
   "devDependencies": {
