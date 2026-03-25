@@ -148,3 +148,80 @@ npm run build:web
 - Reglas opcionales para asistentes de código: `.cursorrules`.
 
 Para dudas de Auth0 o Prisma, consulta la documentación oficial de cada servicio.
+
+---
+
+## CI/CD: Railway (API) + Netlify (web) + GitHub Actions
+
+### Cuándo corre cada cosa
+
+| Momento | Qué pasa |
+|---------|-----------|
+| **Cuando se mezcla** un PR a `main` (botón *Merge* en GitHub) | GitHub registra un **push** en `main` → se ejecuta **Deploy production** (migraciones, Netlify producción, hook de Railway). |
+| **Push directo a `main`** (sin PR) | Igual: mismo workflow de producción. |
+| **Mientras el PR está abierto** (cada push a la rama del PR) | Solo el workflow **PR preview**: build + Netlify *draft* con alias `pr-<número>`. **No** despliega producción hasta que mezcles. |
+
+En resumen: **producción = después del merge a `main`**; **preview = antes, en el PR**.
+
+Archivos en el repo:
+
+| Archivo | Uso |
+|---------|-----|
+| `railway.toml` | Build/start del API en Railway desde la raíz del monorepo |
+| `netlify.toml` | Directorio de salida, comando de build y redirecciones SPA |
+| `.github/workflows/deploy-production.yml` | Migraciones + Netlify producción + *hook* Railway |
+| `.github/workflows/pull-request-preview.yml` | Build + Netlify draft por PR |
+
+### 1. Railway (API + Postgres)
+
+1. Crea un proyecto en [Railway](https://railway.app) y añade **PostgreSQL**.
+2. Crea un servicio desde **GitHub** con este repositorio; **root directory** en la raíz (donde está `package.json`).
+3. En **Variables** del servicio del API, define al menos:
+   - `DATABASE_URL` (Railway suele inyectarla al vincular Postgres; comprueba que apunte al plugin correcto).
+   - `AUTH0_ISSUER_URL`, `AUTH0_AUDIENCE`
+   - `FRONTEND_ORIGIN` = URL pública del sitio Netlify (origen exacto, sin barra final), para CORS.
+   - Opcional: `API_PORT` no es necesario si usas el puerto que Railway asigna; la app usa `PORT` o `API_PORT`.
+4. El archivo `railway.toml` indica `buildCommand` y `startCommand` para Prisma + Nest.
+5. **Deploy hook (para Actions):** en el servicio → **Settings → Deploy → Deploy Hooks** → crea un hook para la rama `main`. Copia la URL.
+
+**Importante:** si activas el deploy automático de Railway al hacer push a `main` **y** usas el workflow con hook, tendrás **doble deploy**. Elige una de estas dos:
+
+- **Solo GitHub Actions:** desactiva el deploy automático por Git en Railway y deja solo el *hook* que llama el workflow, **o**
+- **Solo Railway:** elimina el job `deploy-api` del workflow y deja que Railway despliegue al push.
+
+### 2. Netlify (SPA)
+
+1. Crea un sitio en [Netlify](https://www.netlify.com) (puedes importar el repo o crear vacío y desplegar solo por CLI).
+2. Obtén **Site ID** (Site settings → General) y un **Personal access token** (User settings → Applications).
+3. En Auth0, añade la URL de producción (y la de preview si aplica) en *Allowed Callback URLs*, *Logout* y *Web Origins*.
+
+### 3. Secretos en GitHub
+
+Ruta: repositorio → **Settings → Secrets and variables → Actions → New repository secret**.
+
+Los valores suelen ser **los mismos** que ya usas en producción (Railway, Netlify build, Auth0). No inventes nombres: deben coincidir con lo que pide el workflow.
+
+| Secreto | Para qué sirve en CI | De dónde sacas el valor |
+|---------|----------------------|---------------------------|
+| **`DATABASE_URL`** | `prisma migrate deploy` contra la base de **producción** | **Railway:** abre el plugin **Postgres** → pestaña **Variables** (o **Connect**) → copia la URL `DATABASE_URL` / *Postgres Connection URL*. Debe ser la misma que usa el servicio del API en Railway. |
+| **`RAILWAY_DEPLOY_HOOK_URL`** | Disparar un nuevo deploy del API tras el merge | **Railway:** servicio del API → **Settings → Deploy → Deploy Hooks** → *Create hook* (rama `main`) → copia la URL completa (empieza por `https://…`). |
+| **`NETLIFY_AUTH_TOKEN`** | Que el CLI de Netlify pueda subir el build | **Netlify:** [User settings → Applications → Personal access tokens](https://app.netlify.com/user/applications) → *New access token* → copia el token (solo se muestra una vez). |
+| **`NETLIFY_SITE_ID`** | Indicar a qué sitio subir los archivos | **Netlify:** tu sitio → **Site configuration → General** → *Site details* → **Site ID** (UUID). |
+| **`VITE_API_URL`** | URL pública del API en el bundle del front (sin `/` final recomendado) | La URL que Railway (u otro host) te da para el API, p. ej. `https://tu-api.up.railway.app`. Misma idea que `VITE_API_URL` en `apps/web/.env` local, pero con dominio de producción. |
+| **`VITE_AUTH0_DOMAIN`** | Dominio del tenant Auth0 de la SPA | **Auth0:** [Dashboard](https://manage.auth0.com/) → *Applications* → tu app **Single Page Application** → pestaña *Settings* → campo **Domain** (ej. `dev-xxx.us.auth0.com` o tu custom domain). Igual que en `apps/web/.env`. |
+| **`VITE_AUTH0_CLIENT_ID`** | Client ID de la aplicación SPA | **Auth0:** misma app SPA → **Client ID** en *Settings*. |
+| **`VITE_AUTH0_AUDIENCE`** | Identificador de la API que protege el backend | **Auth0:** *Applications → APIs* → tu API → **Identifier** (URL que definiste como audience). Debe ser **idéntico** a `AUTH0_AUDIENCE` en Railway (API Nest). |
+
+**Variables que no van en GitHub Actions** (las pones en Railway, no en esta tabla): `AUTH0_ISSUER_URL`, `AUTH0_AUDIENCE`, `FRONTEND_ORIGIN` en el servicio del API — salen de Auth0 (issuer = URL del tenant / custom domain) y de la URL pública de tu sitio en Netlify.
+
+**Auth0 y CORS:** en Railway, `FRONTEND_ORIGIN` debe ser exactamente el origen del front (ej. `https://tu-app.netlify.app`).
+
+**Previews de PR:** los mismos `VITE_*` suelen apuntar a producción; si quieres un API de staging, añade otros secretos y cámbialos solo en `pull-request-preview.yml`.
+
+### 4. Orden del workflow de producción
+
+1. **db-migrate:** `npm ci` + `prisma migrate deploy` con `DATABASE_URL`.
+2. **deploy-web** y **deploy-api** en paralelo (el API espera a que termine *migrate*).
+3. **deploy-api** hace `POST` al *deploy hook* de Railway para que construya y arranque el último `main`.
+
+Si no usas hook de Railway, borra el job `deploy-api` o sustitúyelo por tu integración preferida.
