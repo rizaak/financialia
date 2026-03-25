@@ -1,0 +1,27 @@
+{
+  "name": "financialia",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "db:validate": "env DATABASE_URL=\"postgresql://user:pass@127.0.0.1:5432/financialia\" prisma validate",
+    "db:generate": "env DATABASE_URL=\"postgresql://user:pass@127.0.0.1:5432/financialia\" prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:sql": "env DATABASE_URL=\"postgresql://user:pass@127.0.0.1:5432/financialia\" prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "dev:api": "npm run start:dev -w @financialia/api",
+    "dev:web": "npm run dev -w @financialia/web",
+    "build:api": "npm run build -w @financialia/api",
+    "build:web": "npm run build -w @financialia/web",
+    "prepare": "prisma generate"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.2"
+  }
+}

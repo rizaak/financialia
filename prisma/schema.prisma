@@ -1,0 +1,339 @@
+// Esquema Finanzas Personales + IA + bots (WhatsApp/Telegram)
+// PostgreSQL + Prisma — listo para NestJS (DTOs/mappers encima de estos modelos)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+}
+
+/// Origen del registro (manual, bot, importación, asistente)
+enum TransactionSource {
+  MANUAL
+  WHATSAPP
+  TELEGRAM
+  AI_ASSISTANT
+  IMPORT
+}
+
+enum IngestionChannel {
+  WHATSAPP
+  TELEGRAM
+}
+
+enum MediaKind {
+  TEXT
+  IMAGE
+  VOICE
+}
+
+enum IngestionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PayoutFrequency {
+  DAILY
+  MONTHLY
+  ANNUAL
+}
+
+enum TieredInvestmentTxType {
+  DEPOSIT
+  INTEREST_REINVEST
+  INTEREST_PAYOUT_TO_CASH
+}
+
+enum AccountType {
+  BANK
+  WALLET
+  CASH
+}
+
+// --- Core: usuario y moneda base ---
+
+model User {
+  id               String   @id @default(uuid()) @db.Uuid
+  /// Subject único de Auth0 (`sub` del JWT)
+  auth0Subject     String   @unique @map("auth0_subject")
+  email            String?
+  displayName      String?  @map("display_name")
+  avatarUrl        String?  @map("avatar_url")
+  defaultCurrency  String   @default("USD") @map("default_currency") @db.Char(3)
+  timezone         String   @default("UTC")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  accounts                      Account[]
+  categories                    Category[]
+  transactions                  Transaction[]
+  portfolios                    InvestmentPortfolio[]
+  investmentStrategies          InvestmentStrategy[]
+  tieredInvestments             TieredInvestment[]
+  tieredInvestmentTransactions  InvestmentTransaction[]
+  aiInsights                    AiInsight[]
+  ingestionMessages             IngestionMessage[]
+
+  @@map("users")
+}
+
+/// Cuenta donde reside el efectivo (banco, wallet, efectivo).
+model Account {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  name      String
+  type      AccountType
+  currency  String      @default("USD") @db.Char(3)
+  balance   Decimal     @default(0) @db.Decimal(19, 4)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user                          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions                  Transaction[]
+  tieredInvestmentsOrigin       TieredInvestment[]   @relation("TieredInvOrigin")
+  tieredInvestmentsInterestDest TieredInvestment[]   @relation("TieredInvInterestDest")
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Categorías por usuario (sembrar defaults al crear cuenta en la app)
+model Category {
+  id        String          @id @default(uuid()) @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  /// Solo válida para gastos o solo para ingresos.
+  kind      TransactionType @default(EXPENSE) @map("kind")
+  name      String
+  slug      String
+  icon      String?
+  color     String?
+  isArchived Boolean @default(false) @map("is_archived")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  suggestedIngestions   IngestionMessage[]   @relation("IngestionSuggestedCategory")
+
+  @@unique([userId, slug, kind])
+  @@index([userId, kind])
+  @@map("categories")
+}
+
+model Transaction {
+  id           String            @id @default(uuid()) @db.Uuid
+  userId       String            @map("user_id") @db.Uuid
+  accountId    String            @map("account_id") @db.Uuid
+  categoryId   String            @map("category_id") @db.Uuid
+  type         TransactionType
+  /// Monto siempre positivo; el tipo distingue gasto vs ingreso
+  amount       Decimal           @db.Decimal(19, 4)
+  currency     String            @default("USD") @db.Char(3)
+  concept      String
+  notes        String?
+  occurredAt   DateTime          @map("occurred_at")
+  source       TransactionSource @default(MANUAL)
+  aiConfidence Float?            @map("ai_confidence")
+  metadata     Json?
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account           Account            @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category          Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  ingestionMessage  IngestionMessage?
+  interestPayoutLink InvestmentTransaction? @relation("InterestPayoutTx")
+
+  @@index([userId, occurredAt])
+  @@index([userId, categoryId])
+  @@index([accountId])
+  @@map("transactions")
+}
+
+// --- Inversiones: posiciones con rendimiento esperado y snapshots para gráficos ---
+
+model InvestmentPortfolio {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  name         String
+  description  String?  @db.Text
+  baseCurrency String   @default("USD") @map("base_currency") @db.Char(3)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user       User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positions  InvestmentPosition[]
+  snapshots  PortfolioValueSnapshot[]
+
+  @@index([userId])
+  @@map("investment_portfolios")
+}
+
+model InvestmentPosition {
+  id                      String   @id @default(uuid()) @db.Uuid
+  portfolioId             String   @map("portfolio_id") @db.Uuid
+  label                   String
+  initialAmount           Decimal  @map("initial_amount") @db.Decimal(19, 4)
+  /// Rendimiento anual esperado definido por el usuario (ej. 0.075 = 7.5%)
+  expectedAnnualReturnPct Decimal  @map("expected_annual_return_pct") @db.Decimal(9, 6)
+  notes                   String?  @db.Text
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  portfolio InvestmentPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@index([portfolioId])
+  @@map("investment_positions")
+}
+
+model PortfolioValueSnapshot {
+  id          String   @id @default(uuid()) @db.Uuid
+  portfolioId String   @map("portfolio_id") @db.Uuid
+  recordedAt  DateTime @map("recorded_at")
+  totalValue  Decimal  @map("total_value") @db.Decimal(19, 4)
+
+  portfolio InvestmentPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioId, recordedAt])
+  @@index([portfolioId, recordedAt])
+  @@map("portfolio_value_snapshots")
+}
+
+// --- Inversiones con tramos (estrategia + validación de saldo neto) ---
+
+model InvestmentStrategy {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tiers        InvestmentTier[]
+  investments  TieredInvestment[]
+
+  @@index([userId])
+  @@map("investment_strategies")
+}
+
+/// Tramos ordenados por sortOrder; upperLimit es techo acumulado del capital que aplica esa tasa (null = sin límite superior).
+model InvestmentTier {
+  id            String   @id @default(uuid()) @db.Uuid
+  strategyId    String   @map("strategy_id") @db.Uuid
+  sortOrder     Int      @map("sort_order")
+  upperLimit    Decimal? @map("upper_limit") @db.Decimal(19, 4)
+  /// Tasa nominal anual en % (ej. 15 = 15%)
+  annualRatePct Decimal  @map("annual_rate_pct") @db.Decimal(9, 4)
+
+  strategy InvestmentStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@unique([strategyId, sortOrder])
+  @@index([strategyId])
+  @@map("investment_tiers")
+}
+
+model TieredInvestment {
+  id                           String           @id @default(uuid()) @db.Uuid
+  userId                       String           @map("user_id") @db.Uuid
+  strategyId                   String           @map("strategy_id") @db.Uuid
+  /// Cuenta de la que salió el capital (y aportes adicionales por defecto).
+  originAccountId              String           @map("origin_account_id") @db.Uuid
+  /// Si no hay reinversión, los intereses van a esta cuenta; si es null, se usa originAccountId.
+  interestDestinationAccountId String?          @map("interest_destination_account_id") @db.Uuid
+  name                         String
+  principal                    Decimal          @db.Decimal(19, 4)
+  currency                     String           @default("USD") @db.Char(3)
+  payoutFrequency              PayoutFrequency  @map("payout_frequency")
+  autoReinvest                 Boolean          @default(false) @map("auto_reinvest")
+  dailyEstimatedEarnings       Decimal?         @map("daily_estimated_earnings") @db.Decimal(19, 8)
+  effectiveAnnualPct           Decimal?         @map("effective_annual_pct") @db.Decimal(12, 6)
+  createdAt                    DateTime         @default(now()) @map("created_at")
+  updatedAt                    DateTime         @updatedAt @map("updated_at")
+
+  user                       User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy                   InvestmentStrategy      @relation(fields: [strategyId], references: [id], onDelete: Restrict)
+  originAccount              Account                 @relation("TieredInvOrigin", fields: [originAccountId], references: [id], onDelete: Restrict)
+  interestDestinationAccount Account?                @relation("TieredInvInterestDest", fields: [interestDestinationAccountId], references: [id], onDelete: SetNull)
+  transactions               InvestmentTransaction[]
+
+  @@index([userId])
+  @@index([strategyId])
+  @@index([originAccountId])
+  @@map("tiered_investments")
+}
+
+model InvestmentTransaction {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  investmentId        String                 @map("tiered_investment_id") @db.Uuid
+  userId              String                 @map("user_id") @db.Uuid
+  type                TieredInvestmentTxType @map("type")
+  amount              Decimal                @db.Decimal(19, 4)
+  occurredAt          DateTime               @default(now()) @map("occurred_at")
+  notes               String?                @db.Text
+  linkedTransactionId String?                @unique @map("linked_transaction_id") @db.Uuid
+
+  investment        TieredInvestment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedTransaction Transaction?     @relation("InterestPayoutTx", fields: [linkedTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([investmentId, occurredAt])
+  @@index([userId])
+  @@map("tiered_investment_transactions")
+}
+
+// --- IA: insights cacheables para el dashboard ---
+
+model AiInsight {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  title       String?
+  summary     String   @db.Text
+  structured  Json?
+  periodLabel String?  @map("period_label")
+  model       String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("ai_insights")
+}
+
+// --- Webhook bots: texto / imagen (OCR) / voz (Whisper) → clasificación → transacción ---
+
+model IngestionMessage {
+  id                 String            @id @default(uuid()) @db.Uuid
+  userId             String            @map("user_id") @db.Uuid
+  channel            IngestionChannel
+  externalMessageId  String            @map("external_message_id")
+  mediaKind          MediaKind         @map("media_kind")
+  rawText            String?           @map("raw_text") @db.Text
+  mediaUrl           String?           @map("media_url")
+  ocrText            String?           @map("ocr_text") @db.Text
+  transcriptText     String?           @map("transcript_text") @db.Text
+  status             IngestionStatus   @default(PENDING)
+  errorMessage       String?           @map("error_message") @db.Text
+  classifiedPayload  Json?             @map("classified_payload")
+  suggestedCategoryId String?           @map("suggested_category_id") @db.Uuid
+  transactionId      String?           @unique @map("transaction_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at")
+  processedAt        DateTime?         @map("processed_at")
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suggestedCategory Category? @relation("IngestionSuggestedCategory", fields: [suggestedCategoryId], references: [id], onDelete: SetNull)
+  transaction       Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@unique([channel, externalMessageId])
+  @@index([userId, createdAt])
+  @@map("ingestion_messages")
+}

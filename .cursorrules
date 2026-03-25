@@ -1,0 +1,7 @@
+# financialia — convenciones del repo
+
+- Arquitectura: SOLID, Clean Architecture; dependencias hacia adentro (dominio → aplicación → infraestructura).
+- Backend (NestJS): controladores delgados; lógica en servicios/casos de uso; DTOs con class-validator; mappers para respuestas HTTP.
+- Frontend (React + TS): componentes pequeños (<150 líneas); Tailwind + shadcn/ui; datos del dashboard con recharts o Tremor.
+- Base de datos: la fuente de verdad de columnas y relaciones es `prisma/schema.prisma`. No inventar campos que no existan en el esquema.
+- Seguridad: Auth0 + MFA; no persistir secretos en código; usar variables de entorno (ver `.env.example`).
