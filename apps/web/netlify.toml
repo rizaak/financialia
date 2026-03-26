@@ -1,0 +1,10 @@
+# Configuración del sitio SPA (vive en apps/web para no mezclar con el monorepo en la raíz).
+# En GitHub Actions el build se hace antes con npm run build:web; aquí solo publish + redirects.
+
+[build]
+publish = "dist"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200

@@ -168,7 +168,7 @@ Archivos en el repo:
 | Archivo | Uso |
 |---------|-----|
 | `railway.toml` | Build/start del API en Railway desde la raíz del monorepo |
-| `netlify.toml` | Directorio de salida, comando de build y redirecciones SPA |
+| `apps/web/netlify.toml` | `publish = dist` y redirects SPA (el CLI se ejecuta con `cwd` en `apps/web` para evitar conflictos con workspaces npm) |
 | `.github/workflows/deploy-production.yml` | Migraciones + Netlify producción + *hook* Railway |
 | `.github/workflows/pull-request-preview.yml` | Build + Netlify draft por PR |
 
@@ -192,8 +192,11 @@ Archivos en el repo:
 ### 2. Netlify (SPA)
 
 1. Crea un sitio en [Netlify](https://www.netlify.com) (puedes importar el repo o crear vacío y desplegar solo por CLI).
-2. Obtén **Site ID** (Site settings → General) y un **Personal access token** (User settings → Applications).
-3. En Auth0, añade la URL de producción (y la de preview si aplica) en *Allowed Callback URLs*, *Logout* y *Web Origins*.
+2. Si **conectas el repo** en Netlify en lugar de usar solo Actions: **Base directory** = `apps/web`, **Build command** = `cd ../.. && npm ci && npm run build:web`, **Publish directory** = `apps/web/dist` (o `dist` si la base ya es `apps/web`).
+3. Obtén **Site ID** (Site settings → General) y un **Personal access token** (User settings → Applications).
+4. En Auth0, añade la URL de producción (y la de preview si aplica) en *Allowed Callback URLs*, *Logout* y *Web Origins*.
+
+El workflow de GitHub Actions usa `--site=$NETLIFY_SITE_ID` y `working-directory: apps/web` para que el CLI no intente elegir entre los paquetes `@financial-ia/api` y `@financial-ia/web`.
 
 ### 3. Secretos en GitHub
 

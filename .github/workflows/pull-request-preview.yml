@@ -38,7 +38,8 @@ jobs:
           VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
 
       - name: Deploy draft (alias PR)
-        run: npx netlify-cli@17 deploy --dir=apps/web/dist --alias "pr-${{ github.event.pull_request.number }}"
+        working-directory: apps/web
+        run: npx netlify-cli@17 deploy --dir=dist --site="${NETLIFY_SITE_ID}" --alias "pr-${{ github.event.pull_request.number }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
