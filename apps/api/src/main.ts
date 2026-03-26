@@ -19,7 +19,9 @@ async function bootstrap() {
   });
   const rawPort = process.env.PORT ?? process.env.API_PORT ?? '3000';
   const port = parseInt(rawPort, 10);
-  await app.listen(Number.isFinite(port) && port > 0 ? port : 3000);
+  const listenPort = Number.isFinite(port) && port > 0 ? port : 3000;
+  // Railway/Docker: escuchar en todas las interfaces; si no, el healthcheck ve "service unavailable".
+  await app.listen(listenPort, '0.0.0.0');
 }
 
 bootstrap();
