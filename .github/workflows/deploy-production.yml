@@ -1,0 +1,73 @@
+# Producción: se ejecuta en cada push a main.
+# Eso incluye cuando MEZCLAS un PR a main (el merge genera ese push).
+# También: push directo a main o "Squash and merge" / "Rebase and merge".
+
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  db-migrate:
+    name: Prisma migrate (producción)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: prisma migrate deploy
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  deploy-web:
+    name: Netlify (SPA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web
+        run: npm run build:web
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
+          VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
+          VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
+
+      # --site evita el error "Sites detected: @financial-ia/api, @financial-ia/web" en monorepos npm
+      # --dir absoluto: el CLI resuelve --dir relativo a la raíz del repo, no a working-directory.
+      - name: Deploy to Netlify
+        working-directory: apps/web
+        run: npx netlify-cli@17 deploy --prod --dir="${{ github.workspace }}/apps/web/dist" --site="${NETLIFY_SITE_ID}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  deploy-api:
+    name: Railway (API)
+    needs: [db-migrate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Railway deploy
+        run: curl -fsS -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}"

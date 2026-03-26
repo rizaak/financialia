@@ -1,0 +1,13 @@
+# Configuración del sitio SPA (vive en apps/web para no mezclar con el monorepo en la raíz).
+# En GitHub Actions el build se hace antes con npm run build:web; aquí solo publish + redirects.
+#
+# publish es relativo a la raíz del repo si Netlify no tiene Base directory; Vite escribe en apps/web/dist.
+# Si en Netlify pones Base directory = apps/web, usa publish = "dist" en su lugar.
+
+[build]
+publish = "apps/web/dist"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200

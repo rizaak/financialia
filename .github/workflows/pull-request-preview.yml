@@ -1,0 +1,46 @@
+# Preview: cada push a la rama del PR (hacia main). No sustituye al deploy de producción;
+# la producción corre solo cuando el PR se MEZCLA y main recibe el push.
+
+name: PR preview (Netlify)
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview-web:
+    name: Netlify draft deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web (preview)
+        run: npm run build:web
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
+          VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
+          VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
+
+      # --dir debe ser la ruta real del build; el CLI resuelve rutas relativas desde la raíz del repo, no desde working-directory.
+      - name: Deploy draft (alias PR)
+        working-directory: apps/web
+        run: npx netlify-cli@17 deploy --dir="${{ github.workspace }}/apps/web/dist" --site="${NETLIFY_SITE_ID}" --alias "pr-${{ github.event.pull_request.number }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

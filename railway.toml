@@ -1,0 +1,12 @@
+# Railway — build desde la raíz del monorepo (conecta el repo en el dashboard).
+# Variables de entorno (DATABASE_URL, AUTH0_*, FRONTEND_ORIGIN, etc.) se configuran en Railway.
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm ci && npx prisma generate && npm run build:api"
+
+[deploy]
+startCommand = "npm run start:prod -w @financial-ia/api"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
