@@ -1,6 +1,10 @@
 # Producción: se ejecuta en cada push a main.
 # Eso incluye cuando MEZCLAS un PR a main (el merge genera ese push).
 # También: push directo a main o "Squash and merge" / "Rebase and merge".
+#
+# Railway (API): conecta el mismo repo en el servicio, rama main, y activa "Wait for CI".
+# Así Railway NO construye el API hasta que este workflow termine bien (migraciones + Netlify).
+# No hace falta Deploy Hook ni job con curl; ver README → Railway.
 
 name: Deploy production
 
@@ -36,6 +40,7 @@ jobs:
 
   deploy-web:
     name: Netlify (SPA)
+    needs: [db-migrate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,11 +68,3 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
-  deploy-api:
-    name: Railway (API)
-    needs: [db-migrate]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Railway deploy
-        run: curl -fsS -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}"
