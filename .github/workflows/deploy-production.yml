@@ -1,6 +1,10 @@
 # Producción: se ejecuta en cada push a main.
 # Eso incluye cuando MEZCLAS un PR a main (el merge genera ese push).
 # También: push directo a main o "Squash and merge" / "Rebase and merge".
+#
+# Railway (API): conecta el mismo repo en el servicio, rama main, y activa "Wait for CI".
+# El job build-api replica el build de railway.toml; si falla aquí, Wait for CI evita que Railway intente el mismo build en vano.
+# Orden: compilar API → migrar → Netlify. No hace falta Deploy Hook; ver README → Railway.
 
 name: Deploy production
 
@@ -16,8 +20,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build-api:
+    name: Build API (mismo comando que Railway)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      # Alineado con railway.toml [build] (Nixpacks ya hizo npm ci en install; aquí una sola pasada).
+      - name: prisma generate + nest build
+        run: npx prisma generate && npm run build:api
+
   db-migrate:
     name: Prisma migrate (producción)
+    needs: [build-api]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +58,7 @@ jobs:
 
   deploy-web:
     name: Netlify (SPA)
+    needs: [db-migrate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,11 +86,3 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
-  deploy-api:
-    name: Railway (API)
-    needs: [db-migrate]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Railway deploy
-        run: curl -fsS -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}"

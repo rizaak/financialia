@@ -169,7 +169,7 @@ Archivos en el repo:
 |---------|-----|
 | `railway.toml` | Build/start del API en Railway desde la raíz del monorepo |
 | `apps/web/netlify.toml` | `publish = apps/web/dist` (respecto a la raíz del repo) y redirects SPA; en Actions el CLI usa `cwd` `apps/web` y `--dir=${{ github.workspace }}/apps/web/dist` (rutas relativas en `--dir` se resuelven desde la raíz del repo) |
-| `.github/workflows/deploy-production.yml` | Migraciones + Netlify producción + *hook* Railway |
+| `.github/workflows/deploy-production.yml` | Build API → migraciones → Netlify; Railway despliega el API tras CI (**Wait for CI**) |
 | `.github/workflows/pull-request-preview.yml` | Build + Netlify draft por PR |
 
 ### 1. Railway (API + Postgres)
@@ -182,12 +182,9 @@ Archivos en el repo:
    - `FRONTEND_ORIGIN` = URL pública del sitio Netlify (origen exacto, sin barra final), para CORS.
    - Opcional: `API_PORT` no es necesario si usas el puerto que Railway asigna; la app usa `PORT` o `API_PORT`.
 4. El archivo `railway.toml` indica `buildCommand` y `startCommand` para Prisma + Nest.
-5. **Deploy hook (para Actions):** en el servicio → **Settings → Deploy → Deploy Hooks** → crea un hook para la rama `main`. Copia la URL.
+5. **Wait for CI (recomendado):** en el servicio del API, en los ajustes del **origen GitHub** / despliegue, activa **Wait for CI**. Requisitos: el workflow en `.github/workflows/deploy-production.yml` debe dispararse con `on: push: branches: [main]` (ya es así). Así Railway **no construye** el API hasta que GitHub Actions termine **correctamente** (migraciones aplicadas y Netlify subido). Evita desplegar código nuevo contra un esquema viejo y no necesitas *Deploy Hook* ni secret `RAILWAY_DEPLOY_HOOK_URL`.
 
-**Importante:** si activas el deploy automático de Railway al hacer push a `main` **y** usas el workflow con hook, tendrás **doble deploy**. Elige una de estas dos:
-
-- **Solo GitHub Actions:** desactiva el deploy automático por Git en Railway y deja solo el *hook* que llama el workflow, **o**
-- **Solo Railway:** elimina el job `deploy-api` del workflow y deja que Railway despliegue al push.
+**Importante:** con **Wait for CI** + deploy por Git en `main`, un solo flujo basta: no actives además un segundo disparador (p. ej. hook manual) o duplicarás deploys.
 
 ### 2. Netlify (SPA)
 
@@ -207,7 +204,6 @@ Los valores suelen ser **los mismos** que ya usas en producción (Railway, Netli
 | Secreto | Para qué sirve en CI | De dónde sacas el valor |
 |---------|----------------------|---------------------------|
 | **`DATABASE_URL`** | `prisma migrate deploy` contra la base de **producción** | **Railway:** abre el plugin **Postgres** → pestaña **Variables** (o **Connect**) → copia la URL `DATABASE_URL` / *Postgres Connection URL*. Debe ser la misma que usa el servicio del API en Railway. |
-| **`RAILWAY_DEPLOY_HOOK_URL`** | Disparar un nuevo deploy del API tras el merge | **Railway:** servicio del API → **Settings → Deploy → Deploy Hooks** → *Create hook* (rama `main`) → copia la URL completa (empieza por `https://…`). |
 | **`NETLIFY_AUTH_TOKEN`** | Que el CLI de Netlify pueda subir el build | **Netlify:** [User settings → Applications → Personal access tokens](https://app.netlify.com/user/applications) → *New access token* → copia el token (solo se muestra una vez). |
 | **`NETLIFY_SITE_ID`** | Indicar a qué sitio subir los archivos | **Netlify:** tu sitio → **Site configuration → General** → *Site details* → **Site ID** (UUID). |
 | **`VITE_API_URL`** | URL pública del API en el bundle del front (sin `/` final recomendado) | La URL que Railway (u otro host) te da para el API, p. ej. `https://tu-api.up.railway.app`. Misma idea que `VITE_API_URL` en `apps/web/.env` local, pero con dominio de producción. |
@@ -223,8 +219,7 @@ Los valores suelen ser **los mismos** que ya usas en producción (Railway, Netli
 
 ### 4. Orden del workflow de producción
 
-1. **db-migrate:** `npm ci` + `prisma migrate deploy` con `DATABASE_URL`.
-2. **deploy-web** y **deploy-api** en paralelo (el API espera a que termine *migrate*).
-3. **deploy-api** hace `POST` al *deploy hook* de Railway para que construya y arranque el último `main`.
-
-Si no usas hook de Railway, borra el job `deploy-api` o sustitúyelo por tu integración preferida.
+1. **build-api:** `npm ci` + `prisma generate` + `build:api` (mismo criterio que `railway.toml`). Si el build falla aquí, el workflow falla y **Wait for CI** impide que Railway arranque un build que ya sabemos que rompe.
+2. **db-migrate:** solo si el build del API fue bien (`needs: build-api`): `prisma migrate deploy` con `DATABASE_URL`.
+3. **deploy-web:** solo si *migrate* fue bien (`needs: db-migrate`): build + Netlify producción.
+4. **Railway (API):** con **Wait for CI**, el deploy en Railway espera a que todo lo anterior termine en verde; entonces construye y arranca el API (mismo código que ya compiló en el paso 1).

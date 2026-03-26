@@ -3,7 +3,8 @@
 
 [build]
 builder = "nixpacks"
-buildCommand = "npm ci && npx prisma generate && npm run build:api"
+# Nixpacks ya ejecuta `npm ci` en la fase install; repetirlo aquí choca con el cache mount (EBUSY en node_modules/.cache).
+buildCommand = "npx prisma generate && npm run build:api"
 
 [deploy]
 startCommand = "npm run start:prod -w @financial-ia/api"

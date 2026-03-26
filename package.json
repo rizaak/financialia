@@ -1,6 +1,9 @@
 {
   "name": "financial-ia",
   "private": true,
+  "engines": {
+    "node": ">=20.11"
+  },
   "workspaces": [
     "apps/*"
   ],
