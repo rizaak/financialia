@@ -2,8 +2,9 @@
 # Variables de entorno (DATABASE_URL, AUTH0_*, FRONTEND_ORIGIN, etc.) se configuran en Railway.
 
 [build]
-builder = "nixpacks"
-# Nixpacks ya ejecuta `npm ci` en la fase install; repetirlo aquí choca con el cache mount (EBUSY en node_modules/.cache).
+# Railpack es el builder por defecto en Railway (Nixpacks está deprecado).
+builder = "RAILPACK"
+# Railpack instala dependencias en su fase; aquí solo generate + build del API (no repetir npm ci).
 buildCommand = "npx prisma generate && npm run build:api"
 
 [deploy]
