@@ -169,7 +169,7 @@ Archivos en el repo:
 |---------|-----|
 | `railway.toml` | Build/start del API en Railway desde la raíz del monorepo |
 | `apps/web/netlify.toml` | `publish = apps/web/dist` (respecto a la raíz del repo) y redirects SPA; en Actions el CLI usa `cwd` `apps/web` y `--dir=${{ github.workspace }}/apps/web/dist` (rutas relativas en `--dir` se resuelven desde la raíz del repo) |
-| `.github/workflows/deploy-production.yml` | Migraciones → Netlify producción; Railway despliega el API tras CI (**Wait for CI**) |
+| `.github/workflows/deploy-production.yml` | Build API → migraciones → Netlify; Railway despliega el API tras CI (**Wait for CI**) |
 | `.github/workflows/pull-request-preview.yml` | Build + Netlify draft por PR |
 
 ### 1. Railway (API + Postgres)
@@ -219,6 +219,7 @@ Los valores suelen ser **los mismos** que ya usas en producción (Railway, Netli
 
 ### 4. Orden del workflow de producción
 
-1. **db-migrate:** `npm ci` + `prisma migrate deploy` con `DATABASE_URL`.
-2. **deploy-web:** solo si *migrate* fue bien (`needs: db-migrate`): build + Netlify producción.
-3. **Railway (API):** con **Wait for CI** activado, el deploy del servicio queda en estado *waiting* hasta que el workflow anterior termine en verde; entonces Railway construye y arranca el API con el último `main` (esquema ya migrado).
+1. **build-api:** `npm ci` + `prisma generate` + `build:api` (mismo criterio que `railway.toml`). Si el build falla aquí, el workflow falla y **Wait for CI** impide que Railway arranque un build que ya sabemos que rompe.
+2. **db-migrate:** solo si el build del API fue bien (`needs: build-api`): `prisma migrate deploy` con `DATABASE_URL`.
+3. **deploy-web:** solo si *migrate* fue bien (`needs: db-migrate`): build + Netlify producción.
+4. **Railway (API):** con **Wait for CI**, el deploy en Railway espera a que todo lo anterior termine en verde; entonces construye y arranca el API (mismo código que ya compiló en el paso 1).
