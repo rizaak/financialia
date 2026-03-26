@@ -37,9 +37,10 @@ jobs:
           VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
           VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
 
+      # --dir debe ser la ruta real del build; el CLI resuelve rutas relativas desde la raíz del repo, no desde working-directory.
       - name: Deploy draft (alias PR)
         working-directory: apps/web
-        run: npx netlify-cli@17 deploy --dir=dist --site="${NETLIFY_SITE_ID}" --alias "pr-${{ github.event.pull_request.number }}"
+        run: npx netlify-cli@17 deploy --dir="${{ github.workspace }}/apps/web/dist" --site="${NETLIFY_SITE_ID}" --alias "pr-${{ github.event.pull_request.number }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

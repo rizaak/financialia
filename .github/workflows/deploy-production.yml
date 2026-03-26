@@ -56,9 +56,10 @@ jobs:
           VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
 
       # --site evita el error "Sites detected: @financial-ia/api, @financial-ia/web" en monorepos npm
+      # --dir absoluto: el CLI resuelve --dir relativo a la raíz del repo, no a working-directory.
       - name: Deploy to Netlify
         working-directory: apps/web
-        run: npx netlify-cli@17 deploy --prod --dir=dist --site="${NETLIFY_SITE_ID}"
+        run: npx netlify-cli@17 deploy --prod --dir="${{ github.workspace }}/apps/web/dist" --site="${NETLIFY_SITE_ID}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

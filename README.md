@@ -168,7 +168,7 @@ Archivos en el repo:
 | Archivo | Uso |
 |---------|-----|
 | `railway.toml` | Build/start del API en Railway desde la raíz del monorepo |
-| `apps/web/netlify.toml` | `publish = apps/web/dist` (respecto a la raíz del repo) y redirects SPA; el CLI en Actions usa `cwd` `apps/web` y `--dir=dist` |
+| `apps/web/netlify.toml` | `publish = apps/web/dist` (respecto a la raíz del repo) y redirects SPA; en Actions el CLI usa `cwd` `apps/web` y `--dir=${{ github.workspace }}/apps/web/dist` (rutas relativas en `--dir` se resuelven desde la raíz del repo) |
 | `.github/workflows/deploy-production.yml` | Migraciones + Netlify producción + *hook* Railway |
 | `.github/workflows/pull-request-preview.yml` | Build + Netlify draft por PR |
 
