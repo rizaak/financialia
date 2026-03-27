@@ -13,8 +13,11 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+  // El header Origin del navegador nunca lleva barra final; si FRONTEND_ORIGIN sí, CORS falla por mismatch.
+  const fe = process.env.FRONTEND_ORIGIN?.trim();
+  const corsOrigin = fe ? fe.replace(/\/+$/, '') : true;
   app.enableCors({
-    origin: process.env.FRONTEND_ORIGIN ?? true,
+    origin: corsOrigin,
     credentials: true,
   });
   const rawPort = process.env.PORT ?? process.env.API_PORT ?? '3000';
