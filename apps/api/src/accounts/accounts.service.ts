@@ -14,25 +14,33 @@ export class AccountsService {
 
   /**
    * Garantiza al menos una cuenta por usuario (nuevos registros).
+   * Usa bloqueo en `users` para evitar carreras: varias peticiones en paralelo al
+   * primer login podían leer count=0 y crear varias "Cuenta principal".
    */
   async ensurePrimaryAccount(userId: string, currency = 'USD'): Promise<void> {
-    const n = await this.prisma.account.count({ where: { userId } });
-    if (n > 0) {
-      return;
-    }
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { defaultCurrency: true },
-    });
-    const cur = (user?.defaultCurrency ?? currency).toUpperCase().slice(0, 3);
-    await this.prisma.account.create({
-      data: {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'SELECT 1 FROM users WHERE id = $1::uuid FOR UPDATE',
         userId,
-        name: 'Cuenta principal',
-        type: AccountType.CASH,
-        currency: cur,
-        balance: new Prisma.Decimal(0),
-      },
+      );
+      const n = await tx.account.count({ where: { userId } });
+      if (n > 0) {
+        return;
+      }
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { defaultCurrency: true },
+      });
+      const cur = (user?.defaultCurrency ?? currency).toUpperCase().slice(0, 3);
+      await tx.account.create({
+        data: {
+          userId,
+          name: 'Cuenta principal',
+          type: AccountType.CASH,
+          currency: cur,
+          balance: new Prisma.Decimal(0),
+        },
+      });
     });
   }
 
