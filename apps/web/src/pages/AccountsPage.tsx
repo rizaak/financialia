@@ -157,33 +157,6 @@ export function AccountsPage() {
             </p>
           </SectionCard>
 
-          <SectionCard title="Cuentas">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[320px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-200 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    <th className="pb-2 pr-4">Nombre</th>
-                    <th className="pb-2 pr-4">Tipo</th>
-                    <th className="pb-2 pr-4">Moneda</th>
-                    <th className="pb-2 text-right">Saldo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.accounts.map((a) => (
-                    <tr key={a.id} className="border-b border-zinc-100 last:border-0">
-                      <td className="py-2.5 pr-4 font-medium text-zinc-900">{a.name}</td>
-                      <td className="py-2.5 pr-4 text-zinc-600">{accountTypeLabel(a.type)}</td>
-                      <td className="py-2.5 pr-4 text-zinc-600">{a.currency}</td>
-                      <td className="py-2.5 text-right tabular-nums text-zinc-900">
-                        {formatMoney(a.balance, a.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
-
           <SectionCard title="Nueva cuenta">
             <form onSubmit={(e) => void onCreateAccount(e)} className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex-1">
@@ -225,6 +198,33 @@ export function AccountsPage() {
               </button>
             </form>
             {createErr ? <p className="mt-2 text-xs text-rose-600">{createErr}</p> : null}
+          </SectionCard>
+
+          <SectionCard title="Cuentas">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[320px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="pb-2 pr-4">Nombre</th>
+                    <th className="pb-2 pr-4">Tipo</th>
+                    <th className="pb-2 pr-4">Moneda</th>
+                    <th className="pb-2 text-right">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.accounts.map((a) => (
+                    <tr key={a.id} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-2.5 pr-4 font-medium text-zinc-900">{a.name}</td>
+                      <td className="py-2.5 pr-4 text-zinc-600">{accountTypeLabel(a.type)}</td>
+                      <td className="py-2.5 pr-4 text-zinc-600">{a.currency}</td>
+                      <td className="py-2.5 text-right tabular-nums text-zinc-900">
+                        {formatMoney(a.balance, a.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </SectionCard>
         </div>
       ) : null}
