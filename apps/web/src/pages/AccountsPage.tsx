@@ -28,7 +28,7 @@ function accountTypeLabel(t: AccountRow['type']): string {
 }
 
 export function AccountsPage() {
-  const { getAccessToken, defaultCurrency, financeDataRevision } =
+  const { getAccessToken, defaultCurrency, financeDataRevision, notifyTransactionSaved } =
     useOutletContext<ShellOutletContext>();
   const [summary, setSummary] = useState<AccountsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +92,7 @@ export function AccountsPage() {
         currency: defaultCurrency,
       });
       setNewName('');
-      await load();
+      notifyTransactionSaved();
     } catch (err) {
       setCreateErr(err instanceof Error ? err.message : 'No se pudo crear la cuenta');
     } finally {
