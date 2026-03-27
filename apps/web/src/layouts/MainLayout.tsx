@@ -16,7 +16,7 @@ type Props = {
 
 export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [defaultCurrency, setDefaultCurrencyState] = useState<DisplayCurrency>('USD');
+  const [defaultCurrency, setDefaultCurrencyState] = useState<DisplayCurrency>('MXN');
   const [financeDataRevision, setFinanceDataRevision] = useState(0);
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -37,7 +37,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
           setDefaultCurrencyState(normalizeDisplayCurrency(me.defaultCurrency));
         }
       } catch {
-        /* mantener USD por defecto */
+        /* mantener MXN por defecto si falla /me */
       }
     })();
     return () => {

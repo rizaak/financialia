@@ -56,7 +56,7 @@ export class InvestmentsService {
         userId,
         name: dto.name,
         description: dto.description,
-        baseCurrency: dto.baseCurrency ?? 'USD',
+        baseCurrency: dto.baseCurrency ?? 'MXN',
       },
     });
   }

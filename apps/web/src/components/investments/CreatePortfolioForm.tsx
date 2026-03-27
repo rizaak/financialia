@@ -12,7 +12,7 @@ type Props = {
 export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [baseCurrency, setBaseCurrency] = useState('USD');
+  const [baseCurrency, setBaseCurrency] = useState('MXN');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +37,7 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
       await createPortfolio(getAccessToken, body);
       setName('');
       setDescription('');
-      setBaseCurrency('USD');
+      setBaseCurrency('MXN');
       await onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el portafolio');
@@ -93,8 +93,8 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
             onChange={(e) => setBaseCurrency(e.target.value)}
             disabled={busy}
           >
-            <option value="USD">USD</option>
             <option value="MXN">MXN</option>
+            <option value="USD">USD</option>
             <option value="EUR">EUR</option>
           </select>
         </div>

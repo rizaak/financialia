@@ -17,7 +17,7 @@ export class AccountsService {
    * Usa bloqueo en `users` para evitar carreras: varias peticiones en paralelo al
    * primer login podían leer count=0 y crear varias "Cuenta principal".
    */
-  async ensurePrimaryAccount(userId: string, currency = 'USD'): Promise<void> {
+  async ensurePrimaryAccount(userId: string, currency = 'MXN'): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(
         'SELECT 1 FROM users WHERE id = $1::uuid FOR UPDATE',
@@ -103,7 +103,7 @@ export class AccountsService {
   }
 
   async createAccount(userId: string, dto: { name: string; type: AccountType; currency?: string }) {
-    const cur = (dto.currency ?? 'USD').toUpperCase().slice(0, 3);
+    const cur = (dto.currency ?? 'MXN').toUpperCase().slice(0, 3);
     return this.prisma.account.create({
       data: {
         userId,

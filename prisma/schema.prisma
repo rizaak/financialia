@@ -71,7 +71,7 @@ model User {
   email            String?
   displayName      String?  @map("display_name")
   avatarUrl        String?  @map("avatar_url")
-  defaultCurrency  String   @default("USD") @map("default_currency") @db.Char(3)
+  defaultCurrency  String   @default("MXN") @map("default_currency") @db.Char(3)
   timezone         String   @default("UTC")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -95,7 +95,7 @@ model Account {
   userId    String      @map("user_id") @db.Uuid
   name      String
   type      AccountType
-  currency  String      @default("USD") @db.Char(3)
+  currency  String      @default("MXN") @db.Char(3)
   balance   Decimal     @default(0) @db.Decimal(19, 4)
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
@@ -140,7 +140,7 @@ model Transaction {
   type         TransactionType
   /// Monto siempre positivo; el tipo distingue gasto vs ingreso
   amount       Decimal           @db.Decimal(19, 4)
-  currency     String            @default("USD") @db.Char(3)
+  currency     String            @default("MXN") @db.Char(3)
   concept      String
   notes        String?
   occurredAt   DateTime          @map("occurred_at")
@@ -167,7 +167,7 @@ model InvestmentPortfolio {
   userId       String   @map("user_id") @db.Uuid
   name         String
   description  String?  @db.Text
-  baseCurrency String   @default("USD") @map("base_currency") @db.Char(3)
+  baseCurrency String   @default("MXN") @map("base_currency") @db.Char(3)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -252,7 +252,7 @@ model TieredInvestment {
   interestDestinationAccountId String?          @map("interest_destination_account_id") @db.Uuid
   name                         String
   principal                    Decimal          @db.Decimal(19, 4)
-  currency                     String           @default("USD") @db.Char(3)
+  currency                     String           @default("MXN") @db.Char(3)
   payoutFrequency              PayoutFrequency  @map("payout_frequency")
   autoReinvest                 Boolean          @default(false) @map("auto_reinvest")
   dailyEstimatedEarnings       Decimal?         @map("daily_estimated_earnings") @db.Decimal(19, 8)

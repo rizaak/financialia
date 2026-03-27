@@ -1,6 +1,6 @@
 export function formatMoney(
   value: string | number,
-  currencyCode: string = 'USD',
+  currencyCode: string = 'MXN',
 ): string {
   const n = typeof value === 'string' ? Number(value) : value;
   if (Number.isNaN(n)) {
