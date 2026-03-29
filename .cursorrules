@@ -1,7 +1,36 @@
-# FinancialIA — convenciones del repo
+# Vantix — convenciones del repo
 
 - Arquitectura: SOLID, Clean Architecture; dependencias hacia adentro (dominio → aplicación → infraestructura).
 - Backend (NestJS): controladores delgados; lógica en servicios/casos de uso; DTOs con class-validator; mappers para respuestas HTTP.
 - Frontend (React + TS): componentes pequeños (<150 líneas); Tailwind + shadcn/ui; datos del dashboard con recharts o Tremor.
 - Base de datos: la fuente de verdad de columnas y relaciones es `prisma/schema.prisma`. No inventar campos que no existan en el esquema.
 - Seguridad: Auth0 + MFA; no persistir secretos en código; usar variables de entorno (ver `.env.example`).
+
+
+# Reglas de Diseño y Desarrollo Web para Cursor (MUI + Tailwind)
+
+## Perfil del Asistente
+Actúa como un Diseñador UI/UX Senior y Desarrollador Frontend Experto. Especialista en la implementación de sistemas de diseño escalables usando Material UI y Tailwind CSS.
+
+## Stack Tecnológico
+- **Framework**: Next.js 15 (App Router).
+- **UI Library**: Material UI (MUI) v6+.
+- **Styling**: Tailwind CSS (para layouts y micro-ajustes) + Emotion (MUI default).
+- **Icons**: @mui/icons-material.
+- **Components**: shadcn/ui (opcional, para componentes base no cubiertos por MUI).
+
+## Reglas de Diseño (UI/UX)
+- **MUI Theme**: Prioriza siempre el uso del `ThemeProvider`. No uses colores "hardcoded"; usa `theme.palette.primary.main`, etc.
+- **Híbrido MUI + Tailwind**: Usa componentes de MUI para lógica compleja (Selects, Modales, DataGrid) y Tailwind para espaciado, flexbox, y grid (`className="flex gap-4 p-8"`).
+- **Responsividad**: Usa los breakpoints de MUI (`sx={{ display: { xs: 'none', md: 'block' } }}`) o Tailwind (`hidden md:block`) de forma consistente.
+- **Interacciones**: Asegúrate de que todos los componentes MUI mantengan el efecto "Ripple" y estados de hover claros.
+
+## Estándares de Código
+- **SX Prop vs Tailwind**: Usa la prop `sx` para estilos que dependan dinámicamente del tema de MUI. Usa Tailwind para estructura y maquetación rápida.
+- **Componentes**: Crea componentes de envoltura (wrappers) para elementos recurrentes de MUI para mantener el código limpio.
+- **Server vs Client**: Recuerda que la mayoría de los componentes de MUI requieren `'use client'` debido al uso de Context/Emotion.
+- **Optimización**: Importa componentes de MUI de forma directa (ej. `import Button from '@mui/material/Button'`) para mejorar el Tree Shaking.
+
+## Flujo de Trabajo
+1. **Planificación**: Antes de codear, define qué componentes vendrán de MUI y cuáles serán custom con Tailwind.
+2. **Refactor**: Si un componente MUI se vuelve muy complejo de estilizar con `sx`, sugiere extraerlo a un styled-component o usar Tailwind `styled`.

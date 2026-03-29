@@ -1,9 +1,10 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import type { CategoryRow } from '../api/categoryTypes';
 import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
-import { createTransaction } from '../api/fetchTransactions';
+import { useTransactions } from '../hooks/useTransactions';
 import { localDateInputToIsoMidday } from '../lib/localCalendarRange';
 import { AccountSelector } from './AccountSelector';
+import { Spinner } from './ui/spinner';
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2';
@@ -15,7 +16,6 @@ function todayInputDate(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-
 
 type Props = {
   categories: CategoryRow[];
@@ -32,6 +32,7 @@ export function QuickExpenseForm({
   onSaved,
   defaultCurrency,
 }: Props) {
+  const { postTransaction } = useTransactions(getAccessToken);
   const [kind, setKind] = useState<TxKind>('EXPENSE');
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [accountId, setAccountId] = useState('');
@@ -40,7 +41,7 @@ export function QuickExpenseForm({
   const [concept, setConcept] = useState('');
   const [notes, setNotes] = useState('');
   const [spentOn, setSpentOn] = useState(todayInputDate);
-  const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isExpense = kind === 'EXPENSE';
@@ -102,33 +103,38 @@ export function QuickExpenseForm({
       setError(isExpense ? 'Describe el gasto.' : 'Describe el ingreso.');
       return;
     }
-    setBusy(true);
+
+    const accName = accounts.find((a) => a.id === accountId)?.name ?? 'tu cuenta';
+    setSubmitting(true);
     try {
-      await createTransaction(getAccessToken, {
-        accountId,
-        categoryId,
-        type: kind,
-        amount: amt,
-        concept: c,
-        notes: notes.trim() || undefined,
-        occurredAt: localDateInputToIsoMidday(spentOn),
-        source: 'MANUAL',
-      });
-      setAmount('');
-      setConcept('');
-      setNotes('');
-      setSpentOn(todayInputDate());
-      await onSaved();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : isExpense
-            ? 'No se pudo registrar el gasto'
-            : 'No se pudo registrar el ingreso',
+      const result = await postTransaction(
+        {
+          accountId,
+          categoryId,
+          type: kind,
+          amount: amt,
+          concept: c,
+          notes: notes.trim() || undefined,
+          occurredAt: localDateInputToIsoMidday(spentOn),
+          source: 'MANUAL',
+        },
+        {
+          loadingMessage: 'Guardando movimiento…',
+          successMessage: isExpense
+            ? `✅ Gasto registrado con éxito en ${accName}`
+            : `✅ Ingreso registrado con éxito en ${accName}`,
+          successDescription: c,
+        },
       );
+      if (result !== undefined) {
+        setAmount('');
+        setConcept('');
+        setNotes('');
+        setSpentOn(todayInputDate());
+        await onSaved();
+      }
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
@@ -165,7 +171,7 @@ export function QuickExpenseForm({
             className={toggleBtn(isExpense)}
             aria-pressed={isExpense}
             onClick={() => setKind('EXPENSE')}
-            disabled={busy}
+            disabled={submitting}
           >
             Gasto
           </button>
@@ -174,7 +180,7 @@ export function QuickExpenseForm({
             className={toggleBtn(!isExpense)}
             aria-pressed={!isExpense}
             onClick={() => setKind('INCOME')}
-            disabled={busy}
+            disabled={submitting}
           >
             Ingreso
           </button>
@@ -188,7 +194,7 @@ export function QuickExpenseForm({
             accounts={accounts}
             value={accountId}
             onChange={setAccountId}
-            disabled={busy}
+            disabled={submitting}
             currency={defaultCurrency}
           />
         </div>
@@ -201,7 +207,7 @@ export function QuickExpenseForm({
             className={inputClass}
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            disabled={busy}
+            disabled={submitting}
           >
             <option value="">Selecciona…</option>
             {sorted.map((cat) => (
@@ -223,7 +229,7 @@ export function QuickExpenseForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="350.50"
-            disabled={busy}
+            disabled={submitting}
           />
         </div>
         <div>
@@ -236,7 +242,7 @@ export function QuickExpenseForm({
             className={inputClass}
             value={spentOn}
             onChange={(e) => setSpentOn(e.target.value)}
-            disabled={busy}
+            disabled={submitting}
           />
         </div>
         <div className="sm:col-span-2 lg:col-span-4">
@@ -254,7 +260,7 @@ export function QuickExpenseForm({
                 : 'Ej. Nómina, freelance, reembolso'
             }
             maxLength={500}
-            disabled={busy}
+            disabled={submitting}
           />
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
@@ -267,20 +273,21 @@ export function QuickExpenseForm({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             maxLength={2000}
-            disabled={busy}
+            disabled={submitting}
           />
         </div>
         <div className="flex items-end">
           <button
             type="submit"
-            disabled={busy}
-            className={`w-full rounded-lg px-3 py-2 text-sm font-semibold text-white shadow disabled:opacity-50 ${
+            disabled={submitting}
+            className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow disabled:opacity-50 ${
               isExpense
                 ? 'bg-emerald-700 hover:bg-emerald-800'
                 : 'bg-sky-700 hover:bg-sky-800'
             }`}
           >
-            {busy
+            {submitting ? <Spinner className="text-white" /> : null}
+            {submitting
               ? 'Guardando…'
               : isExpense
                 ? 'Registrar gasto'

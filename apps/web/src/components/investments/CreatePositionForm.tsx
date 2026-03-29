@@ -1,6 +1,8 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { createPosition } from '../../api/fetchInvestments';
 import type { InvestmentsOverview } from '../../api/investmentsTypes';
+import { useTransaction } from '../../hooks/useTransaction';
+import { Spinner } from '../ui/spinner';
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2';
@@ -12,12 +14,13 @@ type Props = {
 };
 
 export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Props) {
+  const { run } = useTransaction();
   const [portfolioId, setPortfolioId] = useState(portfolios[0]?.id ?? '');
   const [label, setLabel] = useState('');
   const [initialAmount, setInitialAmount] = useState('');
   const [returnPct, setReturnPct] = useState('7');
   const [notes, setNotes] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = portfolios.length > 0;
@@ -56,23 +59,32 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
     }
     const expectedAnnualReturnPct = pct / 100;
 
-    setBusy(true);
+    setSubmitting(true);
     try {
-      await createPosition(getAccessToken, portfolioId, {
-        label: lbl,
-        initialAmount: amt,
-        expectedAnnualReturnPct,
-        notes: notes.trim() || undefined,
-      });
-      setLabel('');
-      setInitialAmount('');
-      setReturnPct('7');
-      setNotes('');
-      await onSaved();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear la posición');
+      const pfName = portfolios.find((p) => p.id === portfolioId)?.name ?? 'portafolio';
+      const result = await run(
+        () =>
+          createPosition(getAccessToken, portfolioId, {
+            label: lbl,
+            initialAmount: amt,
+            expectedAnnualReturnPct,
+            notes: notes.trim() || undefined,
+          }),
+        {
+          loadingMessage: 'Registrando posición…',
+          successMessage: '✅ Inversión registrada',
+          successDescription: `${lbl} · ${pfName}`,
+        },
+      );
+      if (result !== undefined) {
+        setLabel('');
+        setInitialAmount('');
+        setReturnPct('7');
+        setNotes('');
+        await onSaved();
+      }
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
@@ -95,7 +107,7 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
             className={inputClass}
             value={portfolioId}
             onChange={(e) => setPortfolioId(e.target.value)}
-            disabled={busy || !canSubmit}
+            disabled={submitting || !canSubmit}
           >
             {!canSubmit ? (
               <option value="">Crea un portafolio primero</option>
@@ -119,7 +131,7 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Ej. VTI, CETES, Cripto"
             maxLength={120}
-            disabled={busy || !canSubmit}
+            disabled={submitting || !canSubmit}
           />
         </div>
         <div>
@@ -134,7 +146,7 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
             value={initialAmount}
             onChange={(e) => setInitialAmount(e.target.value)}
             placeholder="10000"
-            disabled={busy || !canSubmit}
+            disabled={submitting || !canSubmit}
           />
         </div>
         <div>
@@ -149,7 +161,7 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
             value={returnPct}
             onChange={(e) => setReturnPct(e.target.value)}
             placeholder="7"
-            disabled={busy || !canSubmit}
+            disabled={submitting || !canSubmit}
           />
         </div>
         <div className="sm:col-span-2">
@@ -162,16 +174,17 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             maxLength={2000}
-            disabled={busy || !canSubmit}
+            disabled={submitting || !canSubmit}
           />
         </div>
         <div className="sm:col-span-2">
           <button
             type="submit"
-            disabled={busy || !canSubmit}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 disabled:opacity-50 sm:w-auto"
+            disabled={submitting || !canSubmit}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 disabled:opacity-50 sm:w-auto"
           >
-            {busy ? 'Guardando…' : 'Añadir posición'}
+            {submitting ? <Spinner /> : null}
+            {submitting ? 'Guardando…' : 'Añadir posición'}
           </button>
         </div>
       </div>

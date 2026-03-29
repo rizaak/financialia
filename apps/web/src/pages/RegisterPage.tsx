@@ -1,27 +1,42 @@
+import { Box, Button, Stack, Typography } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { CategoryRow } from '../api/categoryTypes';
+import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
 import { fetchCategories } from '../api/fetchCategories';
-import { QuickExpenseForm } from '../components/QuickExpenseForm';
-import { SectionCard } from '../components/SectionCard';
+import { listTransactions, TRANSACTION_LIST_MAX } from '../api/fetchTransactions';
+import { CustomButton } from '../components/shared/CustomButton';
+import { TransactionDialog, type TransactionDialogMode } from '../components/shared/TransactionDialog';
+import { buildExpenseCategoryUsageOrder } from '../lib/expenseCategoryUsage';
 import { formatDashboardLoadError } from '../lib/formatDashboardLoadError';
 import type { ShellOutletContext } from '../layouts/shellContext';
 
 export function RegisterPage() {
-  const { getAccessToken, configHint, defaultCurrency, notifyTransactionSaved } =
-    useOutletContext<ShellOutletContext>();
+  const { getAccessToken, configHint, defaultCurrency } = useOutletContext<ShellOutletContext>();
   const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [accounts, setAccounts] = useState<AccountRow[]>([]);
+  const [expenseCategoryUsageOrder, setExpenseCategoryUsageOrder] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<TransactionDialogMode>('expense');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const rows = await fetchCategories(getAccessToken);
+      const [rows, accs, txs] = await Promise.all([
+        fetchCategories(getAccessToken),
+        fetchAccounts(getAccessToken),
+        listTransactions(getAccessToken, TRANSACTION_LIST_MAX),
+      ]);
       setCategories(rows);
+      setAccounts(accs);
+      setExpenseCategoryUsageOrder(buildExpenseCategoryUsageOrder(txs));
     } catch (e) {
       setCategories([]);
+      setAccounts([]);
+      setExpenseCategoryUsageOrder([]);
       setError(formatDashboardLoadError(e));
     } finally {
       setLoading(false);
@@ -32,42 +47,73 @@ export function RegisterPage() {
     void load();
   }, [load]);
 
+  function openDialog(mode: TransactionDialogMode) {
+    setDialogMode(mode);
+    setDialogOpen(true);
+  }
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-emerald-700">Operaciones</p>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Registro</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="self-start rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
-        >
+    <Box sx={{ maxWidth: 1120, mx: 'auto' }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'stretch', sm: 'flex-end' }}
+        justifyContent="space-between"
+        gap={2}
+        sx={{ mb: 3 }}
+      >
+        <Box>
+          <Typography variant="overline" color="primary.main" fontWeight={700}>
+            Operaciones
+          </Typography>
+          <Typography variant="h4" component="h1" fontWeight={800}>
+            Registro
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Gastos, ingresos y transferencias con validación de saldo.
+          </Typography>
+        </Box>
+        <Button variant="outlined" onClick={() => void load()} disabled={loading}>
           Actualizar
-        </button>
-      </header>
+        </Button>
+      </Stack>
 
       {configHint}
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Cargando…</p>
+        <Typography color="text.secondary">Cargando…</Typography>
       ) : error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-          {error}
-        </div>
+        <Box sx={{ borderRadius: 2, border: 1, borderColor: 'error.light', bgcolor: 'error.50', p: 2 }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
       ) : (
-        <SectionCard title="Registrar movimiento">
-          <QuickExpenseForm
-            categories={categories}
+        <>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+            <CustomButton operationVariant="expense" onClick={() => openDialog('expense')} fullWidth>
+              Nuevo gasto
+            </CustomButton>
+            <CustomButton operationVariant="income" onClick={() => openDialog('income')} fullWidth>
+              Nuevo ingreso
+            </CustomButton>
+            <CustomButton operationVariant="transfer" onClick={() => openDialog('transfer')} fullWidth>
+              Transferencia
+            </CustomButton>
+          </Stack>
+
+          <TransactionDialog
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            mode={dialogMode}
             getAccessToken={getAccessToken}
-            onSaved={() => {
-              notifyTransactionSaved();
-            }}
+            categories={categories}
+            accounts={accounts}
             defaultCurrency={defaultCurrency}
+            expenseCategoryUsageOrder={expenseCategoryUsageOrder}
+            onSaved={() => {
+              void load();
+            }}
           />
-        </SectionCard>
+        </>
       )}
-    </div>
+    </Box>
   );
 }

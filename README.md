@@ -1,6 +1,6 @@
-# FinancialIA
+# Vantix
 
-Aplicación de finanzas personales: **API NestJS** (Prisma + PostgreSQL), **SPA React** (Vite + Tailwind) e identidad con **Auth0** (JWT RS256).
+Aplicación de finanzas personales (**Vantix**): **API NestJS** (Prisma + PostgreSQL), **SPA React** (Vite + Tailwind) e identidad con **Auth0** (JWT RS256).
 
 ---
 
