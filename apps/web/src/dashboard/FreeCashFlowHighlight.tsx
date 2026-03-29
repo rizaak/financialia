@@ -156,6 +156,26 @@ export function FreeCashFlowHighlight({ data }: Props) {
                   <MoneyText>{formatMoney(b.bankBalance, cur)}</MoneyText>
                 </Typography>
               </Stack>
+              {!isZeroish(b.liquidTieredPrincipal) ? (
+                <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                    Inversión líquida (tramos)
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <MoneyText>{formatMoney(b.liquidTieredPrincipal, cur)}</MoneyText>
+                  </Typography>
+                </Stack>
+              ) : null}
+              {!isZeroish(b.frozenTieredPrincipal) ? (
+                <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+                  <Typography variant="body2" color="warning.dark" fontWeight={600}>
+                    Congelado en tramos
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} color="warning.dark" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <MoneyText>{formatMoney(b.frozenTieredPrincipal, cur)}</MoneyText>
+                  </Typography>
+                </Stack>
+              ) : null}
               <Divider sx={{ borderStyle: 'dashed' }} />
               <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.03 }}>
                 Compromisos del mes

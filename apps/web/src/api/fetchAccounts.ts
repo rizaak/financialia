@@ -26,6 +26,8 @@ export type BankBalanceRow = {
 
 export type FreeCashFlowBreakdown = {
   bankBalance: string;
+  liquidTieredPrincipal: string;
+  frozenTieredPrincipal: string;
   msiThisMonth: string;
   subscriptionsRemaining: string;
   housingUtilitiesPending: string;
@@ -76,6 +78,32 @@ export async function fetchAccounts(
   });
   await assertOk(res);
   return res.json() as Promise<AccountRow[]>;
+}
+
+export type PatchCreditCardAccountPayload = {
+  name?: string;
+  creditLimit?: number;
+  /** Fracción anual (ej. 0.45 = 45%), misma convención que al crear tarjeta. */
+  annualInterestRatePct?: number;
+};
+
+export async function patchCreditCardAccount(
+  getAccessToken: () => Promise<string>,
+  accountId: string,
+  body: PatchCreditCardAccountPayload,
+): Promise<AccountRow> {
+  const token = await getAccessToken();
+  const res = await fetch(`${getApiBaseUrl()}/accounts/${encodeURIComponent(accountId)}/credit-card`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  await assertOk(res);
+  return res.json() as Promise<AccountRow>;
 }
 
 export async function patchAccountStatus(

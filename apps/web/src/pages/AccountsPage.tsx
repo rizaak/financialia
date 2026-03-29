@@ -1,5 +1,6 @@
 import AddIcon from '@mui/icons-material/Add';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import StraightenOutlined from '@mui/icons-material/StraightenOutlined';
 import {
   Box,
   Button,
@@ -16,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { fetchAccounts as fetchAccountsApi, patchAccountStatus, type AccountRow } from '../api/fetchAccounts';
 import { AddCreditCardDialog } from '../components/AddCreditCardDialog';
+import { AdjustBalanceDialog } from '../components/accounts/AdjustBalanceDialog';
 import { LiquidByTypeDonut } from '../components/accounts/LiquidByTypeDonut';
 import { NewAccountDialog } from '../components/accounts/NewAccountDialog';
 import { SectionCard } from '../components/SectionCard';
@@ -76,6 +78,7 @@ export function AccountsPage() {
   const [accountsAll, setAccountsAll] = useState<AccountRow[] | null>(null);
   const [archiveDialog, setArchiveDialog] = useState<'idle' | 'balance' | 'confirm'>('idle');
   const [archiveTarget, setArchiveTarget] = useState<AccountRow | null>(null);
+  const [adjustBalanceAccount, setAdjustBalanceAccount] = useState<AccountRow | null>(null);
 
   const refreshAllAccounts = useCallback(async () => {
     await fetchAccounts(getAccessToken);
@@ -348,6 +351,18 @@ export function AccountsPage() {
                             <Inventory2OutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<StraightenOutlined sx={{ fontSize: 18 }} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAdjustBalanceAccount(a);
+                          }}
+                          sx={{ textTransform: 'none', fontWeight: 600 }}
+                        >
+                          Ajustar saldo
+                        </Button>
                         {hasDebt ? (
                           <Button variant="contained" size="small" onClick={() => setPayCard(a)}>
                             Registrar pago
@@ -400,7 +415,7 @@ export function AccountsPage() {
                     <th className="pb-2 pr-4">Tipo</th>
                     <th className="pb-2 pr-4">Moneda</th>
                     <th className="pb-2 pr-3 text-right tabular-nums">Saldo</th>
-                    <th className="pb-2 w-12 text-right" aria-label="Acciones" />
+                    <th className="pb-2 text-right" aria-label="Acciones" />
                   </tr>
                 </thead>
                 <tbody>
@@ -432,18 +447,32 @@ export function AccountsPage() {
                           {formatMoney(a.balance, a.currency)}
                         </td>
                         <td className="py-2.5 text-right">
-                          <Tooltip title="Archivar">
-                            <IconButton
-                              size="small"
-                              aria-label={`Archivar ${a.name}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                beginArchiveAccount(a);
-                              }}
-                            >
-                              <Inventory2OutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <Stack direction="row" spacing={0} justifyContent="flex-end" alignItems="center">
+                            <Tooltip title="Ajustar saldo">
+                              <IconButton
+                                size="small"
+                                aria-label={`Ajustar saldo ${a.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAdjustBalanceAccount(a);
+                                }}
+                              >
+                                <StraightenOutlined fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Archivar">
+                              <IconButton
+                                size="small"
+                                aria-label={`Archivar ${a.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  beginArchiveAccount(a);
+                                }}
+                              >
+                                <Inventory2OutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
                         </td>
                       </tr>
                     ))
@@ -470,6 +499,17 @@ export function AccountsPage() {
           ) : null}
         </div>
       ) : null}
+
+      <AdjustBalanceDialog
+        open={adjustBalanceAccount != null}
+        onClose={() => setAdjustBalanceAccount(null)}
+        account={adjustBalanceAccount}
+        getAccessToken={getAccessToken}
+        onSuccess={async () => {
+          notifyTransactionSaved();
+          await refreshAllAccounts();
+        }}
+      />
 
       <NewAccountDialog
         open={newAccountOpen}

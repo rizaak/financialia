@@ -20,6 +20,8 @@ export type ParseNaturalLanguageResponse = {
   suggestedCategoryId: string | null;
   /** Mensaje fijo cuando el gasto va a una tarjeta de crédito (lo arma el backend). */
   creditCardExpenseAcknowledgment?: string | null;
+  /** Liquidez insuficiente aunque el patrimonio (incl. capital congelado en tramos) cubra el gasto. */
+  liquidityWarning?: string | null;
 };
 
 export async function postParseNaturalLanguage(

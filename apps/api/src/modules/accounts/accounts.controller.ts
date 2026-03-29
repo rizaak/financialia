@@ -6,6 +6,7 @@ import { CreateAccountDto } from './dto/create-account.dto';
 import { CreateInstallmentPlanDto } from './dto/create-installment-plan.dto';
 import { SyncBalanceDto } from './dto/sync-balance.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { UpdateCreditCardAccountDto } from './dto/update-credit-card-account.dto';
 import { InstallmentPlansService } from './installment-plans.service';
 
 @Controller('accounts')
@@ -32,6 +33,15 @@ export class AccountsController {
   @Post()
   create(@CurrentUser('id') userId: string, @Body() dto: CreateAccountDto) {
     return this.accounts.createAccount(userId, dto);
+  }
+
+  @Patch(':accountId/credit-card')
+  updateCreditCardAccount(
+    @CurrentUser('id') userId: string,
+    @Param('accountId') accountId: string,
+    @Body() dto: UpdateCreditCardAccountDto,
+  ) {
+    return this.accounts.updateCreditCardAccount(userId, accountId, dto);
   }
 
   @Patch(':accountId')

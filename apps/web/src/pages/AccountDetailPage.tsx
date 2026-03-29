@@ -7,16 +7,11 @@ import {
   Box,
   Button,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   Snackbar,
   Stack,
   Tab,
   Tabs,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -32,7 +27,7 @@ import {
 } from '../api/fetchCreditCard';
 import type { CategoryRow } from '../api/categoryTypes';
 import { fetchCategories } from '../api/fetchCategories';
-import { fetchAccounts, reconcileAccount, type AccountRow } from '../api/fetchAccounts';
+import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
 import {
   deleteTransaction,
   listTransactions,
@@ -43,7 +38,9 @@ import { fetchTransfers, type TransferRecord } from '../api/fetchTransfers';
 import { formatDashboardLoadError } from '../lib/formatDashboardLoadError';
 import { formatMoney } from '../lib/formatMoney';
 import type { ShellOutletContext } from '../layouts/shellContext';
+import { AdjustBalanceDialog } from '../components/accounts/AdjustBalanceDialog';
 import { CreditCardInstallmentPlansSection } from '../components/CreditCardInstallmentPlansSection';
+import { EditCreditCardDialog } from '../components/EditCreditCardDialog';
 import { EditTransactionDialog } from '../components/shared/EditTransactionDialog';
 import { toast } from 'sonner';
 import { useFinanceStore } from '../stores/financeStore';
@@ -128,7 +125,7 @@ function mergeMovements(
 export function AccountDetailPage() {
   const { accountId } = useParams<{ accountId: string }>();
   const navigate = useNavigate();
-  const { getAccessToken, defaultCurrency } = useOutletContext<ShellOutletContext>();
+  const { getAccessToken, defaultCurrency, notifyTransactionSaved } = useOutletContext<ShellOutletContext>();
   const refreshBalancesAfterMutation = useFinanceStore((s) => s.refreshBalancesAfterMutation);
 
   const [account, setAccount] = useState<AccountRow | null>(null);
@@ -139,13 +136,12 @@ export function AccountDetailPage() {
   const [ccStatement, setCcStatement] = useState<CreditCardStatementApi | null>(null);
   const [installmentPlans, setInstallmentPlans] = useState<InstallmentPlanRowApi[]>([]);
   const [syncOpen, setSyncOpen] = useState(false);
-  const [syncValue, setSyncValue] = useState('');
-  const [syncSubmitting, setSyncSubmitting] = useState(false);
   const [accountTxs, setAccountTxs] = useState<TransactionWithCategory[]>([]);
   const [allAccounts, setAllAccounts] = useState<AccountRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [editTx, setEditTx] = useState<TransactionWithCategory | null>(null);
   const [saveSnackOpen, setSaveSnackOpen] = useState(false);
+  const [editCardOpen, setEditCardOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!accountId) return;
@@ -202,12 +198,6 @@ export function AccountDetailPage() {
   useEffect(() => {
     setDetailTab(0);
   }, [accountId]);
-
-  useEffect(() => {
-    if (syncOpen && account) {
-      setSyncValue(String(Number(account.balance)));
-    }
-  }, [syncOpen, account]);
 
   const handleDeleteTx = useCallback(
     async (tx: TransactionWithCategory) => {
@@ -369,16 +359,30 @@ export function AccountDetailPage() {
               {account.status === 'ARCHIVED' ? ' · Archivada' : ''}
             </Typography>
             {account.status === 'ACTIVE' ? (
-              <Button
-                size="small"
-                variant="outlined"
-                color="inherit"
-                startIcon={<StraightenOutlined sx={{ fontSize: 18 }} />}
-                onClick={() => setSyncOpen(true)}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
-                Ajustar Saldo
-              </Button>
+              <>
+                {account.type === 'CREDIT_CARD' ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<EditOutlined sx={{ fontSize: 18 }} />}
+                    onClick={() => setEditCardOpen(true)}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                  >
+                    Editar
+                  </Button>
+                ) : null}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<StraightenOutlined sx={{ fontSize: 18 }} />}
+                  onClick={() => setSyncOpen(true)}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  Ajustar Saldo
+                </Button>
+              </>
             ) : null}
           </Box>
         ) : null}
@@ -465,72 +469,27 @@ export function AccountDetailPage() {
         Ir a todas las cuentas
       </Button>
 
-      <Dialog open={syncOpen} onClose={() => !syncSubmitting && setSyncOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ pb: 1 }}>Ajustar saldo</DialogTitle>
-        <DialogContent>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-            ¿Cuál es el saldo real en tu banco/cartera?
-          </Typography>
-          {account?.type === 'CREDIT_CARD' ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              En tarjetas, indica la <strong>deuda</strong> que ves en el banco (misma convención que el saldo de la
-              cuenta).
-            </Typography>
-          ) : null}
-          <TextField
-            label="Saldo real"
-            value={syncValue}
-            onChange={(e) => setSyncValue(e.target.value)}
-            fullWidth
-            disabled={syncSubmitting}
-            inputProps={{ inputMode: 'decimal' }}
-            autoFocus
-          />
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            Se creará un movimiento de ajuste para que tu saldo en Vantix coincida con tu realidad.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSyncOpen(false)} disabled={syncSubmitting}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            disabled={syncSubmitting}
-            onClick={() => {
-              void (async () => {
-                if (!accountId || !account) return;
-                const n = Number(String(syncValue).replace(/,/g, '').replace(',', '.'));
-                if (!Number.isFinite(n)) {
-                  toast.error('Indica un número válido.');
-                  return;
-                }
-                setSyncSubmitting(true);
-                const tid = toast.loading('Aplicando ajuste…');
-                try {
-                  const r = await reconcileAccount(getAccessToken, accountId, n);
-                  await refreshBalancesAfterMutation(getAccessToken);
-                  await load();
-                  if (r.skipped) {
-                    toast.success('Sin diferencia con el saldo registrado.', { id: tid });
-                  } else {
-                    toast.success('Saldo reconciliado. El patrimonio se actualizó.', { id: tid });
-                  }
-                  setSyncOpen(false);
-                  setSyncValue('');
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'No se pudo aplicar el ajuste.', { id: tid });
-                } finally {
-                  setSyncSubmitting(false);
-                }
-              })();
-            }}
-          >
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AdjustBalanceDialog
+        open={syncOpen}
+        onClose={() => setSyncOpen(false)}
+        account={account?.status === 'ACTIVE' ? account : null}
+        getAccessToken={getAccessToken}
+        onSuccess={async () => {
+          await refreshBalancesAfterMutation(getAccessToken);
+          await load();
+        }}
+      />
     </Container>
+    <EditCreditCardDialog
+      open={editCardOpen}
+      onClose={() => setEditCardOpen(false)}
+      account={account?.type === 'CREDIT_CARD' ? account : null}
+      getAccessToken={getAccessToken}
+      onSaved={async () => {
+        notifyTransactionSaved();
+        await load();
+      }}
+    />
     <EditTransactionDialog
       open={editTx != null}
       onClose={() => setEditTx(null)}

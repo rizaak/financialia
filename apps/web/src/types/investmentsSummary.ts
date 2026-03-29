@@ -15,6 +15,8 @@ export type TieredInvestmentRowApi = {
   currency: string;
   payoutFrequency: 'DAILY' | 'MONTHLY' | 'ANNUAL';
   autoReinvest: boolean;
+  isLiquid: boolean;
+  maturityDate: string | null;
   effectiveAnnualPct: string;
   dailyEstimatedEarnings: string;
   tierProgressMessage: string;

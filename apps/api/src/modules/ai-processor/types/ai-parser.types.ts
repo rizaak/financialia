@@ -62,6 +62,10 @@ export type NaturalLanguageParseResult = {
    * No lo genera el modelo de parseo.
    */
   creditCardExpenseAcknowledgment?: string | null;
+  /**
+   * Gasto en débito que supera liquidez disponible pero el patrimonio (incl. capital congelado en tramos) sí cubriría.
+   */
+  liquidityWarning?: string | null;
 };
 
 /** Resumen de gastos (mismo shape que `DashboardSummaryResponse`) para consejos de ahorro. */

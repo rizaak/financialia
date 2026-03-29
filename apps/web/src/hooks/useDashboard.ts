@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { AccountsSummary, RealLiquidityRecurringKpi } from '../api/fetchAccounts';
+import type { AccountsSummary, FreeCashFlowBreakdown, RealLiquidityRecurringKpi } from '../api/fetchAccounts';
 import type { DashboardSummary } from '../api/types';
 import { parseNestErrorBody } from '../lib/http/parseNestErrorBody';
 import { createApiClient } from '../services/api.service';
@@ -39,13 +39,7 @@ export type DashboardDataSnapshot = {
   monthExpense: string;
   aiTips: string[];
   freeCashFlow: string;
-  freeCashFlowBreakdown: {
-    bankBalance: string;
-    msiThisMonth: string;
-    subscriptionsRemaining: string;
-    housingUtilitiesPending: string;
-    recurringEventsExpensePending: string;
-  };
+  freeCashFlowBreakdown: FreeCashFlowBreakdown;
   realLiquidityRecurring: RealLiquidityRecurringKpi;
 };
 
