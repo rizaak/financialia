@@ -1,4 +1,4 @@
-export type CategoryKind = 'EXPENSE' | 'INCOME';
+export type CategoryKind = 'EXPENSE' | 'INCOME' | 'ADJUSTMENT';
 
 export type CategoryRow = {
   id: string;

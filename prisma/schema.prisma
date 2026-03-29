@@ -15,6 +15,13 @@ datasource db {
 enum TransactionType {
   EXPENSE
   INCOME
+  /// Reconciliación de saldo (metadata.signedDelta en la transacción).
+  ADJUSTMENT
+}
+
+enum AccountStatus {
+  ACTIVE
+  ARCHIVED
 }
 
 /// Origen del registro (manual, bot, importación, asistente)
@@ -60,6 +67,58 @@ enum AccountType {
   BANK
   WALLET
   CASH
+  /// Tarjeta de crédito: `balance` representa la deuda (lo que debes).
+  CREDIT_CARD
+}
+
+enum InstallmentPlanStatus {
+  ACTIVE
+  PAID
+  CANCELLED
+}
+
+/// Perfil de tolerancia al riesgo (inversiones / recomendaciones).
+enum RiskTolerance {
+  CONSERVATIVE
+  MODERATE
+  AGGRESSIVE
+}
+
+/// Suscripción o cargo recurrente (ej. Netflix).
+enum RecurringExpenseFrequency {
+  MONTHLY
+  ANNUAL
+}
+
+/// Ingreso recurrente (ej. nómina quincenal).
+enum RecurringIncomeFrequency {
+  QUINCENAL
+  MONTHLY
+}
+
+/// Tipo de movimiento del evento recurrente.
+enum RecurringEventType {
+  EXPENSE
+  INCOME
+}
+
+/// Frecuencia del evento recurrente (quincenal = BIWEEKLY).
+enum RecurringEventFrequency {
+  MONTHLY
+  BIWEEKLY
+  WEEKLY
+  YEARLY
+}
+
+/// Préstamo personal o hipotecario (pasivo a largo plazo).
+enum LoanKind {
+  PERSONAL
+  MORTGAGE
+}
+
+enum LoanStatus {
+  ACTIVE
+  PAID_OFF
 }
 
 // --- Core: usuario y moneda base ---
@@ -71,7 +130,7 @@ model User {
   email            String?
   displayName      String?  @map("display_name")
   avatarUrl        String?  @map("avatar_url")
-  defaultCurrency  String   @default("USD") @map("default_currency") @db.Char(3)
+  defaultCurrency  String   @default("MXN") @map("default_currency") @db.Char(3)
   timezone         String   @default("UTC")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -79,14 +138,59 @@ model User {
   accounts                      Account[]
   categories                    Category[]
   transactions                  Transaction[]
+  transfers                     Transfer[]
   portfolios                    InvestmentPortfolio[]
   investmentStrategies          InvestmentStrategy[]
   tieredInvestments             TieredInvestment[]
   tieredInvestmentTransactions  InvestmentTransaction[]
   aiInsights                    AiInsight[]
   ingestionMessages             IngestionMessage[]
+  auditLogs                     AuditLog[]
+  profile                       UserProfile?
+  recurringExpenses             RecurringExpense[]
+  recurringIncomes              RecurringIncome[]
+  recurringEvents               RecurringEvent[]
+  loans                         Loan[]
+  loanPayments                  LoanPayment[]
 
   @@map("users")
+}
+
+/// Preferencias extendidas vinculadas al usuario (Auth0 `sub` vía User).
+model UserProfile {
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @unique @map("user_id") @db.Uuid
+  baseCurrency   String          @default("MXN") @map("base_currency") @db.Char(3)
+  monthlyBudget  Decimal?        @map("monthly_budget") @db.Decimal(19, 4)
+  riskTolerance  RiskTolerance   @default(MODERATE) @map("risk_tolerance")
+  language       String          @default("es-MX") @map("language")
+  timezone       String          @default("UTC")
+  /// Ocultar importes en UI (preferencia de privacidad).
+  hideBalances   Boolean         @default(false) @map("hide_balances")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+/// Registro de auditoría para acciones sensibles (transferencias, inversiones, etc.).
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  auth0Sub  String?  @map("auth0_sub") @db.VarChar(512)
+  action    String
+  resource  String?
+  metadata  Json?
+  ip        String?  @db.VarChar(64)
+  userAgent String?  @map("user_agent") @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
 }
 
 /// Cuenta donde reside el efectivo (banco, wallet, efectivo).
@@ -95,18 +199,157 @@ model Account {
   userId    String      @map("user_id") @db.Uuid
   name      String
   type      AccountType
-  currency  String      @default("USD") @db.Char(3)
+  status    AccountStatus @default(ACTIVE)
+  currency  String      @default("MXN") @db.Char(3)
   balance   Decimal     @default(0) @db.Decimal(19, 4)
+  /// Solo CREDIT_CARD: límite de crédito.
+  creditLimit      Decimal? @map("credit_limit") @db.Decimal(19, 4)
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
 
   user                          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard       CreditCard?
+  installmentPlans InstallmentPlan[] @relation("InstallmentPlanCreditCard")
   transactions                  Transaction[]
+  transfersFrom                 Transfer[]           @relation("TransferOrigin")
+  transfersTo                   Transfer[]           @relation("TransferDest")
   tieredInvestmentsOrigin       TieredInvestment[]   @relation("TieredInvOrigin")
   tieredInvestmentsInterestDest TieredInvestment[]   @relation("TieredInvInterestDest")
+  recurringExpenses             RecurringExpense[]
+  recurringIncomes              RecurringIncome[]
+  recurringEvents               RecurringEvent[]
 
   @@index([userId])
   @@map("accounts")
+}
+
+/// Perfil financiero de tarjeta (1:1 con Account tipo CREDIT_CARD).
+model CreditCard {
+  id                         String   @id @default(uuid()) @db.Uuid
+  accountId                  String   @unique @map("account_id") @db.Uuid
+  /// Día del mes (1–31) en que cierra el periodo; si el mes tiene menos días, se usa el último día.
+  closingDay                 Int      @map("closing_day")
+  /// Días naturales después del corte hasta la fecha límite de pago (ej. 20). Equivale a “día límite relativo al corte”.
+  paymentDueDaysAfterClosing Int      @map("payment_due_days_after_closing")
+  /// Tasa anual efectiva (ej. 0.45 = 45% anual).
+  annualInterestRatePct      Decimal  @map("annual_interest_rate_pct") @db.Decimal(9, 6)
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("credit_cards")
+}
+
+/// Compra a meses (MSI / diferidos): 1:1 con la transacción de compra; many:1 con la cuenta tarjeta.
+model InstallmentPlan {
+  id                   String                @id @default(uuid()) @db.Uuid
+  /// Cuenta tarjeta (tipo CREDIT_CARD).
+  accountId            String                @map("account_id") @db.Uuid
+  transactionId        String                @unique @map("transaction_id") @db.Uuid
+  description          String                @default("") @db.Text
+  totalAmount          Decimal               @map("total_amount") @db.Decimal(19, 4)
+  totalInstallments    Int                   @map("total_installments")
+  /// Cuota en curso (1 = primera). Avanza con el cron en cada fecha de corte.
+  currentInstallment   Int                   @default(1) @map("current_installment")
+  monthlyAmount        Decimal               @map("monthly_amount") @db.Decimal(19, 4)
+  startDate            DateTime              @map("start_date")
+  /// Tasa anual del plan; 0 = MSI sin intereses, >0 = diferidos con tasa.
+  interestRate         Decimal               @map("interest_rate") @db.Decimal(9, 6)
+  status               InstallmentPlanStatus @default(ACTIVE)
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  account     Account     @relation("InstallmentPlanCreditCard", fields: [accountId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([accountId, status])
+  @@map("installment_plans")
+}
+
+/// Suscripción o cargo recurrente programado (recordatorio + confirmación de cargo).
+model RecurringExpense {
+  id              String                    @id @default(uuid()) @db.Uuid
+  userId          String                    @map("user_id") @db.Uuid
+  name            String                    @db.VarChar(200)
+  amount          Decimal                   @db.Decimal(19, 4)
+  currency        String                    @default("MXN") @map("currency") @db.Char(3)
+  categoryId      String                    @map("category_id") @db.Uuid
+  accountId       String                    @map("account_id") @db.Uuid
+  frequency       RecurringExpenseFrequency
+  /// Día del mes (1–31); en meses cortos se usa el último día.
+  billingDay      Int                       @map("billing_day")
+  /// Mes 1–12; obligatorio para ANNUAL.
+  billingMonth    Int?                      @map("billing_month")
+  lastConfirmedAt DateTime?                 @map("last_confirmed_at")
+  isArchived      Boolean                   @default(false) @map("is_archived")
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([userId, isArchived])
+  @@map("recurring_expenses")
+}
+
+/// Ingreso recurrente esperado (ej. nómina quincenal en días 15 y 30).
+model RecurringIncome {
+  id              String                   @id @default(uuid()) @db.Uuid
+  userId          String                   @map("user_id") @db.Uuid
+  label           String                   @default("Nómina") @db.VarChar(200)
+  amount          Decimal                  @db.Decimal(19, 4)
+  currency        String                   @default("MXN") @map("currency") @db.Char(3)
+  frequency       RecurringIncomeFrequency
+  /// Días naturales del mes (1–31) en que esperas el depósito; ej. [15, 30]
+  paymentDays     Int[]                    @default([]) @map("payment_days")
+  categoryId      String                   @map("category_id") @db.Uuid
+  accountId       String                   @map("account_id") @db.Uuid
+  lastConfirmedAt DateTime?                @map("last_confirmed_at")
+  isArchived      Boolean                  @default(false) @map("is_archived")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([userId, isArchived])
+  @@map("recurring_incomes")
+}
+
+/// Evento recurrente unificado (suscripciones, servicios, ingresos fijos).
+model RecurringEvent {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  userId             String                  @map("user_id") @db.Uuid
+  name               String                  @db.VarChar(200)
+  type               RecurringEventType      @map("event_type")
+  amount             Decimal                 @db.Decimal(19, 4)
+  currency           String                  @default("MXN") @map("currency") @db.Char(3)
+  frequency          RecurringEventFrequency
+  /// Días del mes (1–31): mensual/anual un día; quincenal dos (por defecto 15 y 31 = último día vía matching).
+  daysOfMonth        Int[]                   @default([]) @map("days_of_month")
+  /// Día principal (1–31) para UI; la fuente de verdad del calendario es `daysOfMonth`.
+  dayOfMonth         Int?                    @map("day_of_month")
+  /// 0=domingo … 6=sábado (futuro: frecuencia semanal).
+  dayOfWeek          Int?                    @map("day_of_week")
+  /// Mes 1–12 solo si frequency = YEARLY.
+  billingMonth       Int?                    @map("billing_month")
+  categoryId         String                  @map("category_id") @db.Uuid
+  defaultAccountId   String                  @map("default_account_id") @db.Uuid
+  lastProcessedDate  DateTime?               @map("last_processed_at")
+  isActive           Boolean                 @default(true) @map("is_active")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account  Account  @relation(fields: [defaultAccountId], references: [id], onDelete: Restrict)
+
+  @@index([userId, isActive])
+  @@map("recurring_events")
 }
 
 /// Categorías por usuario (sembrar defaults al crear cuenta en la app)
@@ -126,6 +369,9 @@ model Category {
   user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions          Transaction[]
   suggestedIngestions   IngestionMessage[]   @relation("IngestionSuggestedCategory")
+  recurringExpenses     RecurringExpense[]
+  recurringIncomes      RecurringIncome[]
+  recurringEvents       RecurringEvent[]
 
   @@unique([userId, slug, kind])
   @@index([userId, kind])
@@ -140,7 +386,7 @@ model Transaction {
   type         TransactionType
   /// Monto siempre positivo; el tipo distingue gasto vs ingreso
   amount       Decimal           @db.Decimal(19, 4)
-  currency     String            @default("USD") @db.Char(3)
+  currency     String            @default("MXN") @db.Char(3)
   concept      String
   notes        String?
   occurredAt   DateTime          @map("occurred_at")
@@ -153,11 +399,36 @@ model Transaction {
   category          Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   ingestionMessage  IngestionMessage?
   interestPayoutLink InvestmentTransaction? @relation("InterestPayoutTx")
+  transferBankFee    Transfer?              @relation("TransferBankFee")
+  installmentPlan    InstallmentPlan?
 
   @@index([userId, occurredAt])
   @@index([userId, categoryId])
   @@index([accountId])
   @@map("transactions")
+}
+
+/// Movimiento de liquidez entre cuentas del mismo usuario (no es ingreso/gasto salvo comisión).
+model Transfer {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  originAccountId      String   @map("origin_account_id") @db.Uuid
+  destinationAccountId String   @map("destination_account_id") @db.Uuid
+  amount               Decimal  @db.Decimal(19, 4)
+  fee                  Decimal  @default(0) @db.Decimal(19, 4)
+  occurredAt           DateTime @map("occurred_at")
+  notes                String?  @db.Text
+  feeTransactionId     String?  @unique @map("fee_transaction_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  originAccount      Account      @relation("TransferOrigin", fields: [originAccountId], references: [id], onDelete: Restrict)
+  destinationAccount Account      @relation("TransferDest", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  feeTransaction     Transaction? @relation("TransferBankFee", fields: [feeTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+  @@map("transfers")
 }
 
 // --- Inversiones: posiciones con rendimiento esperado y snapshots para gráficos ---
@@ -167,7 +438,7 @@ model InvestmentPortfolio {
   userId       String   @map("user_id") @db.Uuid
   name         String
   description  String?  @db.Text
-  baseCurrency String   @default("USD") @map("base_currency") @db.Char(3)
+  baseCurrency String   @default("MXN") @map("base_currency") @db.Char(3)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -252,7 +523,7 @@ model TieredInvestment {
   interestDestinationAccountId String?          @map("interest_destination_account_id") @db.Uuid
   name                         String
   principal                    Decimal          @db.Decimal(19, 4)
-  currency                     String           @default("USD") @db.Char(3)
+  currency                     String           @default("MXN") @db.Char(3)
   payoutFrequency              PayoutFrequency  @map("payout_frequency")
   autoReinvest                 Boolean          @default(false) @map("auto_reinvest")
   dailyEstimatedEarnings       Decimal?         @map("daily_estimated_earnings") @db.Decimal(19, 8)
@@ -336,4 +607,55 @@ model IngestionMessage {
   @@unique([channel, externalMessageId])
   @@index([userId, createdAt])
   @@map("ingestion_messages")
+}
+
+/// Crédito personal o hipoteca: saldo vivo y amortización.
+model Loan {
+  id                 String     @id @default(uuid()) @db.Uuid
+  userId             String     @map("user_id") @db.Uuid
+  kind               LoanKind
+  name               String     @db.VarChar(200)
+  /// Monto original del crédito (capital inicial).
+  totalAmount        Decimal    @map("total_amount") @db.Decimal(19, 4)
+  /// Capital pendiente de amortizar.
+  currentBalance     Decimal    @map("current_balance") @db.Decimal(19, 4)
+  /// Tasa anual efectiva en fracción (ej. 0.089 = 8.9% anual).
+  interestRateAnnual Decimal    @map("interest_rate_annual") @db.Decimal(9, 6)
+  termMonths         Int        @map("term_months")
+  /// Mensualidad fija (capital + intereses según tabla; el desglose va en LoanPayment).
+  monthlyPayment     Decimal    @map("monthly_payment") @db.Decimal(19, 4)
+  startDate          DateTime   @map("start_date")
+  currency           String     @default("MXN") @map("currency") @db.Char(3)
+  status             LoanStatus @default(ACTIVE)
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments LoanPayment[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("loans")
+}
+
+/// Pago registrado hacia un préstamo: solo el capital reduce `Loan.currentBalance`.
+model LoanPayment {
+  id               String   @id @default(uuid()) @db.Uuid
+  loanId           String   @map("loan_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  /// Suma de capital + interés + seguros (debe coincidir con el desglose).
+  totalAmount      Decimal  @map("total_amount") @db.Decimal(19, 4)
+  principalAmount  Decimal  @map("principal_amount") @db.Decimal(19, 4)
+  interestAmount   Decimal  @map("interest_amount") @db.Decimal(19, 4)
+  insuranceAmount  Decimal  @map("insurance_amount") @db.Decimal(19, 4)
+  paidAt           DateTime @default(now()) @map("paid_at")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([loanId, paidAt])
+  @@index([userId])
+  @@map("loan_payments")
 }

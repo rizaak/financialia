@@ -1,20 +1,26 @@
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-import { fetchAccountsSummary, type AccountsSummary } from '../api/fetchAccounts';
-import { fetchDashboardSummary } from '../api/fetchSummary';
-import type { DashboardSummary } from '../api/types';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { lazy, Suspense, useMemo, type ReactNode } from 'react';
+import { LogoVantix } from '../components/brand/LogoVantix';
 import { ChartFallback } from '../components/ChartFallback';
 import { SectionCard } from '../components/SectionCard';
 import { StatCard } from '../components/StatCard';
-import { formatDashboardLoadError } from '../lib/formatDashboardLoadError';
+import { useFinanceStore } from '../stores/financeStore';
+import { useDashboard } from '../hooks/useDashboard';
 import { formatMoney } from '../lib/formatMoney';
+import { AiFinancialAdvisor } from './AiFinancialAdvisor';
+import { AiInsightsWidget } from './AiInsightsWidget';
+import { BalanceSummaryCards } from './BalanceSummaryCards';
+import { FreeCashFlowHighlight } from './FreeCashFlowHighlight';
+import { DashboardCreditCardsStrip } from './DashboardCreditCardsStrip';
+import { DashboardPaymentCalendar } from './DashboardPaymentCalendar';
+import { BankBalancesRow } from './BankBalancesRow';
+import { DashboardInvestmentsMini } from './DashboardInvestmentsMini';
+import { DashboardLoansSection } from './DashboardLoansSection';
+import { DashboardOverviewSkeleton } from './DashboardOverviewSkeleton';
+import { RecentActivityFeed } from './RecentActivityFeed';
+import { UpcomingEventsWidget } from './UpcomingEventsWidget';
+import { useRecurringChatReminders } from '../hooks/useRecurringChatReminders';
 
 const ExpenseByCategoryChart = lazy(async () => {
   const m = await import('../components/ExpenseByCategoryChart');
@@ -31,151 +37,190 @@ export type DashboardViewProps = {
   getAccessToken: () => Promise<string>;
   configHint?: ReactNode;
   defaultCurrency: string;
-  financeDataRevision: number;
 };
 
 export function DashboardView({
   getAccessToken,
   configHint,
   defaultCurrency,
-  financeDataRevision,
 }: DashboardViewProps) {
-  const [data, setData] = useState<DashboardSummary | null>(null);
-  const [accountsSummary, setAccountsSummary] = useState<AccountsSummary | null>(null);
-  const [accountsError, setAccountsError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const balanceRevision = useFinanceStore((s) => s.balancesRevision);
+  const {
+    loading,
+    refreshing,
+    error,
+    snapshot,
+    periodSummary,
+    accountsSummary,
+    investmentsSummary,
+    loansSummary,
+    refetch,
+  } = useDashboard({ getAccessToken });
 
-  const load = useCallback(
-    async (opts?: { silent?: boolean }) => {
-      const silent = Boolean(opts?.silent);
-      if (!silent) {
-        setLoading(true);
-        setError(null);
-        setAccountsError(null);
-      }
-      try {
-        const [sumRes, accRes] = await Promise.allSettled([
-          fetchDashboardSummary(getAccessToken),
-          fetchAccountsSummary(getAccessToken),
-        ]);
-        if (sumRes.status === 'rejected') {
-          throw sumRes.reason;
-        }
-        setData(sumRes.value);
-        if (accRes.status === 'fulfilled') {
-          setAccountsSummary(accRes.value);
-          setAccountsError(null);
-        } else if (!silent) {
-          setAccountsSummary(null);
-          setAccountsError(formatDashboardLoadError(accRes.reason));
-        }
-      } catch (e) {
-        if (!silent) {
-          setData(null);
-          setAccountsSummary(null);
-          setError(formatDashboardLoadError(e));
-        }
-      } finally {
-        if (!silent) {
-          setLoading(false);
-        }
-      }
-    },
-    [getAccessToken],
+  const showSkeleton = loading && !snapshot;
+  const cur = snapshot?.defaultCurrency ?? defaultCurrency;
+
+  const creditCardAccounts = useMemo(
+    () => accountsSummary?.accounts.filter((a) => a.type === 'CREDIT_CARD') ?? [],
+    [accountsSummary?.accounts],
   );
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const revisionSyncReady = useRef(false);
-  useEffect(() => {
-    if (!revisionSyncReady.current) {
-      revisionSyncReady.current = true;
-      return;
-    }
-    void load({ silent: true });
-  }, [financeDataRevision, load]);
-
-  const curForPatrimonio = accountsSummary?.defaultCurrency ?? defaultCurrency;
+  const dashboardReady = Boolean(snapshot && periodSummary && accountsSummary && investmentsSummary);
+  useRecurringChatReminders({
+    getAccessToken,
+    enabled: dashboardReady,
+  });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-emerald-700">Resumen</p>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Tu panorama</h1>
-          <p className="mt-1 text-sm text-zinc-500">Mes en curso, gastos por categoría y patrimonio.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="self-start rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
-        >
-          Actualizar
-        </button>
-      </header>
+    <div className="mx-auto w-full max-w-6xl py-4">
+      <Box
+        component="header"
+        className="col-span-12 mb-6 mt-4"
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { sm: 'flex-end' },
+          justifyContent: 'space-between',
+          gap: 2,
+        }}
+      >
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <LogoVantix size={44} aria-label="Vantix" />
+          </Box>
+          <Box component="h1" sx={{ typography: 'h4', fontWeight: 800 }}>
+            Tu panorama
+          </Box>
+          <Box component="p" sx={{ typography: 'body2', color: 'text.secondary', mt: 0.5 }}>
+            Resumen de periodo, cuentas, inversiones a tramos y actividad reciente.
+          </Box>
+        </Box>
+        <Tooltip title="Actualizar datos del dashboard">
+          <span>
+            <IconButton
+              color="primary"
+              onClick={() => void refetch()}
+              disabled={refreshing}
+              aria-label="Actualizar datos del dashboard"
+              sx={{
+                alignSelf: { xs: 'flex-end', sm: 'auto' },
+                border: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
+            >
+              {refreshing ? <CircularProgress size={22} color="inherit" /> : <RefreshIcon />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      </Box>
 
       {configHint}
 
-      {loading ? (
-        <p className="text-sm text-zinc-500">Cargando…</p>
-      ) : error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-          {error}
-        </div>
-      ) : data ? (
-        <div className="space-y-8">
-          <SectionCard
-            title="Este mes"
-            subtitle={periodLabel(data.period.from, data.period.to)}
-          >
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard label="Ingresos" value={formatMoney(data.totals.income, defaultCurrency)} />
-              <StatCard label="Gastos" value={formatMoney(data.totals.expense, defaultCurrency)} />
-              <StatCard
-                label="Flujo neto"
-                value={formatMoney(data.totals.net, defaultCurrency)}
-                tone={Number(data.totals.net) >= 0 ? 'positive' : 'negative'}
+      <div className="grid grid-cols-12 gap-4 sm:gap-6">
+        {showSkeleton ? (
+          <DashboardOverviewSkeleton />
+        ) : error && !snapshot ? (
+          <div className="col-span-12 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            {error}
+          </div>
+        ) : snapshot && periodSummary && accountsSummary && investmentsSummary ? (
+          <>
+            <FreeCashFlowHighlight data={snapshot} />
+            <BalanceSummaryCards data={snapshot} />
+
+            <div className="col-span-12">
+              <UpcomingEventsWidget
+                getAccessToken={getAccessToken}
+                defaultCurrency={cur}
+                balanceRevision={balanceRevision}
+                onMutation={() => void refetch()}
               />
             </div>
-          </SectionCard>
 
-          <SectionCard title="Gastos por categoría">
-            <Suspense fallback={<ChartFallback />}>
-              <ExpenseByCategoryChart rows={data.expensesByCategory} currencyCode={defaultCurrency} />
-            </Suspense>
-          </SectionCard>
+            {creditCardAccounts.length > 0 ? (
+              <DashboardCreditCardsStrip
+                getAccessToken={getAccessToken}
+                accounts={creditCardAccounts}
+                defaultCurrency={cur}
+                balanceRevision={balanceRevision}
+              />
+            ) : null}
 
-          {accountsSummary ? (
-            <SectionCard title="Patrimonio">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                  label="Líquido"
-                  value={formatMoney(accountsSummary.totalLiquid, curForPatrimonio)}
-                />
-                <StatCard
-                  label="En bancos"
-                  value={formatMoney(accountsSummary.totalBanks, curForPatrimonio)}
-                />
-                <StatCard
-                  label="Invertido"
-                  value={formatMoney(accountsSummary.totalInvestedTiered, curForPatrimonio)}
-                />
-                <StatCard
-                  label="Total neto"
-                  value={formatMoney(accountsSummary.totalNetBalance, curForPatrimonio)}
-                />
-              </div>
-            </SectionCard>
-          ) : accountsError ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              No se pudo cargar el patrimonio. Inténtalo de nuevo más tarde.
+            {creditCardAccounts.length > 0 ? (
+              <DashboardPaymentCalendar
+                getAccessToken={getAccessToken}
+                creditCards={creditCardAccounts}
+                allAccounts={accountsSummary.accounts}
+                defaultCurrency={cur}
+                balanceRevision={balanceRevision}
+                onPaid={() => void refetch()}
+              />
+            ) : null}
+
+            <div className="col-span-12">
+              <SectionCard title="Cuentas bancarias" subtitle="Saldo por cuenta (tipo banco, moneda por defecto)">
+                <BankBalancesRow banks={accountsSummary.banksBreakdown ?? []} currencyCode={cur} />
+              </SectionCard>
             </div>
-          ) : null}
-        </div>
-      ) : null}
+
+            <div className="col-span-12 flex flex-col gap-8 lg:col-span-8">
+              <SectionCard
+                title="Este mes"
+                subtitle={periodLabel(periodSummary.period.from, periodSummary.period.to)}
+              >
+                <div className="grid grid-cols-1 items-stretch gap-4 pt-2 sm:grid-cols-3">
+                  <StatCard label="Ingresos" value={formatMoney(periodSummary.totals.income, cur)} />
+                  <StatCard label="Gastos" value={formatMoney(periodSummary.totals.expense, cur)} />
+                  <StatCard
+                    label="Flujo neto"
+                    value={formatMoney(periodSummary.totals.net, cur)}
+                    tone={Number(periodSummary.totals.net) >= 0 ? 'positive' : 'negative'}
+                  />
+                </div>
+              </SectionCard>
+
+              <DashboardInvestmentsMini data={investmentsSummary} currencyCode={cur} />
+
+              {loansSummary && loansSummary.loans.some((l) => l.status === 'ACTIVE') ? (
+                <SectionCard
+                  title="Pasivos"
+                  subtitle="Préstamos fijos e hipotecas — progreso de capital e intereses acumulados"
+                >
+                  <DashboardLoansSection
+                    data={loansSummary}
+                    defaultCurrency={cur}
+                    getAccessToken={getAccessToken}
+                  />
+                </SectionCard>
+              ) : null}
+
+              <SectionCard title="Gastos por categoría">
+                <Suspense fallback={<ChartFallback />}>
+                  <ExpenseByCategoryChart
+                    rows={periodSummary.expensesByCategory}
+                    currencyCode={cur}
+                  />
+                </Suspense>
+              </SectionCard>
+
+              <RecentActivityFeed
+                getAccessToken={getAccessToken}
+                defaultCurrency={cur}
+                balanceRevision={balanceRevision}
+                accounts={accountsSummary.accounts}
+                onMutation={() => void refetch()}
+              />
+            </div>
+
+            <div className="col-span-12 flex flex-col gap-6 lg:col-span-4">
+              <AiInsightsWidget data={snapshot} />
+              <AiFinancialAdvisor getAccessToken={getAccessToken} />
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

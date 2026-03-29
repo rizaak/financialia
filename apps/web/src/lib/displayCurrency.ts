@@ -1,5 +1,7 @@
 export type DisplayCurrency = 'USD' | 'MXN';
 
 export function normalizeDisplayCurrency(code: string | undefined | null): DisplayCurrency {
-  return code?.trim().toUpperCase() === 'MXN' ? 'MXN' : 'USD';
+  const c = code?.trim().toUpperCase();
+  if (c === 'USD') return 'USD';
+  return 'MXN';
 }

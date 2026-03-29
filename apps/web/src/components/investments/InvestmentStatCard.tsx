@@ -1,3 +1,12 @@
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
+import AutoGraphOutlined from '@mui/icons-material/AutoGraphOutlined';
+import SpeedOutlined from '@mui/icons-material/SpeedOutlined';
+import TrendingUpOutlined from '@mui/icons-material/TrendingUpOutlined';
+import { Box, Card, CardContent, CardHeader, Typography } from '@mui/material';
+import type { ReactNode } from 'react';
+
+export type InvestmentStatKey = 'patrimonio' | 'rendimiento' | 'ritmo' | 'proyeccion';
+
 type Tone = 'default' | 'positive' | 'negative';
 
 type Props = {
@@ -9,12 +18,14 @@ type Props = {
   tone?: Tone;
   /** Flecha al lado del valor (p. ej. rendimiento %). */
   showTrendArrow?: boolean;
+  /** Icono y estilo premium por métrica. */
+  statKey?: InvestmentStatKey;
 };
 
-const toneClass: Record<Tone, string> = {
-  default: 'text-zinc-900',
-  positive: 'text-emerald-600',
-  negative: 'text-rose-600',
+const toneColor: Record<Tone, string> = {
+  default: 'text.primary',
+  positive: 'success.main',
+  negative: 'error.main',
 };
 
 function TrendArrow({ tone }: { tone: Tone }) {
@@ -47,6 +58,15 @@ function TrendArrow({ tone }: { tone: Tone }) {
   return null;
 }
 
+const iconByStat: Record<InvestmentStatKey, ReactNode> = {
+  patrimonio: <AccountBalanceWalletOutlined sx={{ fontSize: 22 }} />,
+  rendimiento: <TrendingUpOutlined sx={{ fontSize: 22 }} />,
+  ritmo: <SpeedOutlined sx={{ fontSize: 22 }} />,
+  proyeccion: <AutoGraphOutlined sx={{ fontSize: 22 }} />,
+};
+
+const cardShadow = '0 2px 16px -4px rgba(15, 23, 42, 0.07), 0 4px 24px -8px rgba(15, 23, 42, 0.06)';
+
 export function InvestmentStatCard({
   label,
   value,
@@ -54,26 +74,83 @@ export function InvestmentStatCard({
   variant = 'default',
   tone = 'default',
   showTrendArrow = false,
+  statKey,
 }: Props) {
   const isHero = variant === 'hero';
+  const isProyeccion = statKey === 'proyeccion';
+  const headerIcon = statKey ? iconByStat[statKey] : null;
+
   return (
-    <div
-      className={`rounded-2xl border border-zinc-200/90 bg-white shadow-sm ${
-        isHero ? 'p-6 ring-1 ring-emerald-500/10' : 'p-5'
-      }`}
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: '16px',
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: cardShadow,
+        overflow: 'visible',
+        ...(isHero ? { borderColor: 'success.light', bgcolor: 'grey.50' } : {}),
+      }}
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
-      <div className={`mt-2 flex items-center gap-2 ${isHero ? 'min-h-[2.75rem]' : ''}`}>
-        {showTrendArrow ? <TrendArrow tone={tone} /> : null}
-        <p
-          className={`font-semibold tabular-nums ${toneClass[tone]} ${
-            isHero ? 'text-3xl tracking-tight sm:text-4xl' : 'text-2xl'
-          }`}
+      <CardHeader
+        avatar={
+          headerIcon ? (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                bgcolor: 'action.hover',
+                color: 'primary.main',
+              }}
+            >
+              {headerIcon}
+            </Box>
+          ) : undefined
+        }
+        title={label}
+        titleTypographyProps={{
+          variant: 'overline',
+          color: 'text.secondary',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+        }}
+        sx={{ pb: 0, pt: 2, px: 2, '& .MuiCardHeader-avatar': { mr: 1.5 } }}
+      />
+      <CardContent sx={{ pt: 1, pb: 2, px: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            minHeight: isHero ? 44 : 40,
+          }}
         >
-          {value}
-        </p>
-      </div>
-      {hint ? <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{hint}</p> : null}
-    </div>
+          {showTrendArrow ? <TrendArrow tone={tone} /> : null}
+          <Typography
+            component="p"
+            variant={isProyeccion ? 'h5' : isHero ? 'h4' : 'h6'}
+            fontWeight={800}
+            color={isProyeccion ? 'success.main' : toneColor[tone]}
+            sx={{
+              letterSpacing: '-0.02em',
+              fontVariantNumeric: 'tabular-nums',
+              lineHeight: 1.15,
+              ...(isProyeccion ? { fontSize: { xs: '1.35rem', sm: '1.5rem' } } : {}),
+            }}
+          >
+            {value}
+          </Typography>
+        </Box>
+        {hint ? (
+          <Typography variant="caption" color="text.disabled" sx={{ mt: 1, display: 'block', lineHeight: 1.4 }}>
+            {hint}
+          </Typography>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

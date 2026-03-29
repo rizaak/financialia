@@ -63,7 +63,7 @@ export function ProfilePage() {
       </SectionCard>
 
       <div className="mt-6">
-        <SectionCard title="Tu perfil" subtitle="Datos guardados en FinancialIA">
+        <SectionCard title="Tu perfil" subtitle="Datos guardados en Vantix">
           {loading ? (
             <p className="text-sm text-zinc-500">Cargando…</p>
           ) : error ? (

@@ -1,5 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { createPortfolio, type CreatePortfolioBody } from '../../api/fetchInvestments';
+import { useTransaction } from '../../hooks/useTransaction';
+import { Spinner } from '../ui/spinner';
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2';
@@ -10,10 +12,11 @@ type Props = {
 };
 
 export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
+  const { run } = useTransaction();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [baseCurrency, setBaseCurrency] = useState('USD');
-  const [busy, setBusy] = useState(false);
+  const [baseCurrency, setBaseCurrency] = useState('MXN');
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
@@ -24,7 +27,7 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
       setError('El nombre es obligatorio.');
       return;
     }
-    setBusy(true);
+    setSubmitting(true);
     try {
       const body: CreatePortfolioBody = { name: trimmed };
       const desc = description.trim();
@@ -34,15 +37,19 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
       if (baseCurrency && baseCurrency.length === 3) {
         body.baseCurrency = baseCurrency.toUpperCase();
       }
-      await createPortfolio(getAccessToken, body);
-      setName('');
-      setDescription('');
-      setBaseCurrency('USD');
-      await onSaved();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el portafolio');
+      const result = await run(() => createPortfolio(getAccessToken, body), {
+        loadingMessage: 'Creando portafolio…',
+        successMessage: '✅ Portafolio creado',
+        successDescription: trimmed,
+      });
+      if (result !== undefined) {
+        setName('');
+        setDescription('');
+        setBaseCurrency('MXN');
+        await onSaved();
+      }
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
@@ -64,7 +71,7 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
             onChange={(e) => setName(e.target.value)}
             placeholder="Ej. Retiro, Corto plazo"
             maxLength={120}
-            disabled={busy}
+            disabled={submitting}
             autoComplete="off"
           />
         </div>
@@ -79,7 +86,7 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Notas sobre objetivos o reglas"
             maxLength={2000}
-            disabled={busy}
+            disabled={submitting}
           />
         </div>
         <div>
@@ -91,20 +98,21 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
             className={inputClass}
             value={baseCurrency}
             onChange={(e) => setBaseCurrency(e.target.value)}
-            disabled={busy}
+            disabled={submitting}
           >
-            <option value="USD">USD</option>
             <option value="MXN">MXN</option>
+            <option value="USD">USD</option>
             <option value="EUR">EUR</option>
           </select>
         </div>
         <div className="flex items-end">
           <button
             type="submit"
-            disabled={busy}
-            className="w-full rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-zinc-800 disabled:opacity-50"
+            disabled={submitting}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-zinc-800 disabled:opacity-50"
           >
-            {busy ? 'Guardando…' : 'Crear portafolio'}
+            {submitting ? <Spinner className="text-white" /> : null}
+            {submitting ? 'Guardando…' : 'Crear portafolio'}
           </button>
         </div>
       </div>
