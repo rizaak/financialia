@@ -8,6 +8,7 @@ const typeLabel: Record<AccountRow['type'], string> = {
   BANK: 'Banco',
   WALLET: 'Cartera',
   CASH: 'Efectivo',
+  CREDIT_CARD: 'Tarjeta',
 };
 
 export type AccountSelectorProps = {
@@ -33,7 +34,8 @@ export function AccountSelector({
   className = '',
 }: AccountSelectorProps) {
   const cur = currency?.toUpperCase().slice(0, 3);
-  const list = cur ? accounts.filter((a) => a.currency.toUpperCase() === cur) : accounts;
+  const active = accounts.filter((a) => a.status !== 'ARCHIVED');
+  const list = cur ? active.filter((a) => a.currency.toUpperCase() === cur) : active;
 
   if (list.length === 0) {
     return (
@@ -63,7 +65,10 @@ export function AccountSelector({
         <option value="">Selecciona…</option>
         {list.map((a) => (
           <option key={a.id} value={a.id}>
-            {a.name} · {typeLabel[a.type]} · {formatMoney(a.balance, a.currency)}
+            {a.name} · {typeLabel[a.type]} ·{' '}
+            {a.type === 'CREDIT_CARD'
+              ? `Deuda ${formatMoney(a.balance, a.currency)}`
+              : formatMoney(a.balance, a.currency)}
           </option>
         ))}
       </select>

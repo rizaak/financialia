@@ -13,6 +13,7 @@ export type ShellOutletContext = {
   shellUser?: ShellUser;
   defaultCurrency: DisplayCurrency;
   setDefaultCurrency: (c: DisplayCurrency) => void;
-  financeDataRevision: number;
+  /** Revisión global de saldos (Zustand); sube tras mutaciones y refrescos. */
+  balanceRevision: number;
   notifyTransactionSaved: () => void;
 };

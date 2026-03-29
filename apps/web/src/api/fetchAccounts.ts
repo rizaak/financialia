@@ -1,11 +1,43 @@
+import { assertOk } from '../lib/http/assertOk';
 import { getApiBaseUrl } from './apiBaseUrl';
+
+export type CreditCardProfileRow = {
+  closingDay: number;
+  paymentDueDaysAfterClosing: number;
+  annualInterestRatePct: string;
+};
 
 export type AccountRow = {
   id: string;
   name: string;
-  type: 'BANK' | 'WALLET' | 'CASH';
+  type: 'BANK' | 'WALLET' | 'CASH' | 'CREDIT_CARD';
+  status: 'ACTIVE' | 'ARCHIVED';
   currency: string;
   balance: string;
+  creditLimit?: string | null;
+  creditCard?: CreditCardProfileRow | null;
+};
+
+export type BankBalanceRow = {
+  id: string;
+  name: string;
+  balance: string;
+};
+
+export type FreeCashFlowBreakdown = {
+  bankBalance: string;
+  msiThisMonth: string;
+  subscriptionsRemaining: string;
+  housingUtilitiesPending: string;
+  /** Gastos en eventos recurrentes unificados (tabla RecurringEvent) pendientes en el mes. */
+  recurringEventsExpensePending: string;
+};
+
+/** Saldo bancario − gastos recurrentes pendientes del mes (motor RecurringEvent). */
+export type RealLiquidityRecurringKpi = {
+  bankBalance: string;
+  recurringExpensesPending: string;
+  realLiquidity: string;
 };
 
 export type AccountsSummary = {
@@ -15,23 +47,83 @@ export type AccountsSummary = {
   totalCash: string;
   totalLiquid: string;
   totalInvestedTiered: string;
+  totalCreditDebt: string;
   totalNetBalance: string;
+  /** Cuentas tipo banco con saldo individual */
+  banksBreakdown: BankBalanceRow[];
   accounts: AccountRow[];
+  /** Saldo bancos − MSI − suscripciones restantes − renta/servicios (moneda base). */
+  freeCashFlow: string;
+  freeCashFlowBreakdown: FreeCashFlowBreakdown;
+  realLiquidityRecurring: RealLiquidityRecurringKpi;
 };
 
-export async function fetchAccounts(getAccessToken: () => Promise<string>): Promise<AccountRow[]> {
+export async function fetchAccounts(
+  getAccessToken: () => Promise<string>,
+  options?: { includeArchived?: boolean },
+): Promise<AccountRow[]> {
   const token = await getAccessToken();
-  const res = await fetch(`${getApiBaseUrl()}/accounts`, {
+  const q = new URLSearchParams();
+  if (options?.includeArchived) {
+    q.set('includeArchived', 'true');
+  }
+  const suffix = q.toString() ? `?${q}` : '';
+  const res = await fetch(`${getApiBaseUrl()}/accounts${suffix}`, {
     headers: {
       Accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
+  await assertOk(res);
   return res.json() as Promise<AccountRow[]>;
+}
+
+export async function patchAccountStatus(
+  getAccessToken: () => Promise<string>,
+  accountId: string,
+  body: { status: 'ACTIVE' | 'ARCHIVED' },
+): Promise<AccountRow> {
+  const token = await getAccessToken();
+  const res = await fetch(`${getApiBaseUrl()}/accounts/${accountId}`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  await assertOk(res);
+  return res.json() as Promise<AccountRow>;
+}
+
+/** Reconcilia el saldo de la cuenta con el valor real (crea transacción ADJUSTMENT si hay diferencia). */
+export async function reconcileAccount(
+  getAccessToken: () => Promise<string>,
+  accountId: string,
+  actualBalance: number,
+): Promise<{ skipped: boolean; transaction: Record<string, unknown> | null }> {
+  const token = await getAccessToken();
+  const res = await fetch(`${getApiBaseUrl()}/accounts/${accountId}/reconcile`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ actualBalance }),
+  });
+  await assertOk(res);
+  return res.json() as Promise<{ skipped: boolean; transaction: Record<string, unknown> | null }>;
+}
+
+/** @deprecated Usa `reconcileAccount`. */
+export async function syncAccountBalance(
+  getAccessToken: () => Promise<string>,
+  accountId: string,
+  actualBalance: number,
+): Promise<{ skipped: boolean; transaction: Record<string, unknown> | null }> {
+  return reconcileAccount(getAccessToken, accountId, actualBalance);
 }
 
 export async function fetchAccountsSummary(
@@ -44,10 +136,7 @@ export async function fetchAccountsSummary(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
+  await assertOk(res);
   return res.json() as Promise<AccountsSummary>;
 }
 
@@ -55,6 +144,10 @@ export type CreateAccountPayload = {
   name: string;
   type: AccountRow['type'];
   currency?: string;
+  creditLimit?: number;
+  closingDay?: number;
+  paymentDueDaysAfterClosing?: number;
+  annualInterestRatePct?: number;
 };
 
 export async function createAccount(
@@ -71,9 +164,6 @@ export async function createAccount(
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
+  await assertOk(res);
   return res.json() as Promise<AccountRow>;
 }

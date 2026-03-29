@@ -1,13 +1,15 @@
+import { Box } from '@mui/material';
 import { useMemo } from 'react';
 import type { InvestmentsOverview } from '../../api/investmentsTypes';
 import { formatMoney } from '../../lib/formatMoney';
 import { mapOverviewToDashboardModel } from '../../investments/mapOverviewToDashboard';
 import { SectionCard } from '../SectionCard';
 import { AssetTable } from './AssetTable';
-import { InvestmentChart } from './InvestmentChart';
 import { InvestmentStatCard } from './InvestmentStatCard';
-import { PortfolioDonutChart } from './PortfolioDonutChart';
+import { MuiGrowthLineChart } from './MuiGrowthLineChart';
+import { MuiPortfolioPieChart } from './MuiPortfolioPieChart';
 import { TargetAllocationTool } from './TargetAllocationTool';
+import { TierInterestProgressBar } from './TierInterestProgressBar';
 
 type Props = {
   overview: InvestmentsOverview;
@@ -26,25 +28,32 @@ export function InvestmentDashboard({ overview, currencyCode }: Props) {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <InvestmentStatCard variant="hero" label="Patrimonio total" value={fmt(model.patrimonioTotal)} />
         <InvestmentStatCard
+          statKey="patrimonio"
+          variant="hero"
+          label="Patrimonio total"
+          value={fmt(model.patrimonioTotal)}
+        />
+        <InvestmentStatCard
+          statKey="rendimiento"
           label="Rendimiento promedio ponderado"
           value={`${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%`}
           tone={returnPositive ? 'positive' : 'negative'}
           showTrendArrow
         />
-        <InvestmentStatCard label="Ritmo mensual (año 1)" value={fmt(model.estimatedMonthlyChange)} />
+        <InvestmentStatCard statKey="ritmo" label="Ritmo mensual (año 1)" value={fmt(model.estimatedMonthlyChange)} />
         <InvestmentStatCard
+          statKey="proyeccion"
           label="Proyección a 12 meses"
           value={fmt(model.proyeccion12Meses)}
           tone="positive"
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
+      <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
         <div className="lg:col-span-3">
           <SectionCard title="Crecimiento proyectado">
-            <InvestmentChart
+            <MuiGrowthLineChart
               data={model.growthSeries}
               currencyCode={currencyCode}
               formatCurrency={fmtN}
@@ -53,7 +62,7 @@ export function InvestmentDashboard({ overview, currencyCode }: Props) {
         </div>
         <div className="lg:col-span-2">
           <SectionCard title="Distribución del portafolio">
-            <PortfolioDonutChart
+            <MuiPortfolioPieChart
               segments={model.donutSegments}
               formatCurrency={fmtN}
               currencyCode={currencyCode}
@@ -61,6 +70,12 @@ export function InvestmentDashboard({ overview, currencyCode }: Props) {
           </SectionCard>
         </div>
       </div>
+
+      <SectionCard title="Tramos de interés (referencia)">
+        <Box sx={{ maxWidth: 720 }}>
+          <TierInterestProgressBar principal={model.patrimonioTotal} />
+        </Box>
+      </SectionCard>
 
       <SectionCard title="Activos">
         <AssetTable

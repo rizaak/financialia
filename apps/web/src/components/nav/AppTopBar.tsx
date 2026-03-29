@@ -1,4 +1,5 @@
 import type { ShellUser } from '../../layouts/shellContext';
+import { LogoVantix } from '../brand/LogoVantix';
 import { UserMenu } from './UserMenu';
 
 type Props = {
@@ -21,8 +22,9 @@ export function AppTopBar({ user, onLogout, onNavigate, onOpenSidebar }: Props) 
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <span className="min-w-0 flex-1 truncate text-center text-sm font-semibold text-zinc-900 lg:hidden">
-        FinancialIA
+      <span className="flex min-w-0 flex-1 items-center justify-center gap-2 truncate lg:hidden">
+        <LogoVantix size={28} />
+        <span className="text-sm font-semibold tracking-tight text-zinc-900">Vantix</span>
       </span>
       <div className="ml-auto shrink-0">
         <UserMenu user={user} onLogout={onLogout} onNavigate={onNavigate} align="right" />

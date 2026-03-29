@@ -1,8 +1,12 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useCallback, useEffect, useMemo } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AppToaster } from './components/AppToaster';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { MainLayout } from './layouts/MainLayout';
+import { AppProviders } from './theme/AppProviders';
 import type { ShellUser } from './layouts/shellContext';
+import { AccountDetailPage } from './pages/AccountDetailPage';
 import { AccountsPage } from './pages/AccountsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
@@ -82,6 +86,7 @@ function Auth0Dashboard() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="registro" element={<RegisterPage />} />
+          <Route path="cuentas/:accountId" element={<AccountDetailPage />} />
           <Route path="cuentas" element={<AccountsPage />} />
           <Route path="inversiones" element={<InvestmentsPage />} />
           <Route path="perfil" element={<ProfilePage />} />
@@ -126,6 +131,7 @@ function DevTokenDashboard() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="registro" element={<RegisterPage />} />
+          <Route path="cuentas/:accountId" element={<AccountDetailPage />} />
           <Route path="cuentas" element={<AccountsPage />} />
           <Route path="inversiones" element={<InvestmentsPage />} />
           <Route path="perfil" element={<ProfilePage />} />
@@ -138,5 +144,12 @@ function DevTokenDashboard() {
 }
 
 export default function App() {
-  return isAuth0Configured() ? <Auth0Dashboard /> : <DevTokenDashboard />;
+  return (
+    <ErrorBoundary>
+      <AppProviders>
+        <AppToaster />
+        {isAuth0Configured() ? <Auth0Dashboard /> : <DevTokenDashboard />}
+      </AppProviders>
+    </ErrorBoundary>
+  );
 }
