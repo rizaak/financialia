@@ -203,7 +203,7 @@ export function TransferForm({ getAccessToken, onSaved, defaultCurrency }: Props
     <>
       <form onSubmit={(e) => void onSubmit(e)}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             {fromPool.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 No tienes cuentas de débito en {cur}.
@@ -233,7 +233,7 @@ export function TransferForm({ getAccessToken, onSaved, defaultCurrency }: Props
               </TextField>
             )}
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             {destOptions.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 No hay cuenta de destino disponible.
@@ -263,7 +263,7 @@ export function TransferForm({ getAccessToken, onSaved, defaultCurrency }: Props
             )}
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Monto a mover"
@@ -279,7 +279,7 @@ export function TransferForm({ getAccessToken, onSaved, defaultCurrency }: Props
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Comisión (opcional)"
@@ -296,7 +296,7 @@ export function TransferForm({ getAccessToken, onSaved, defaultCurrency }: Props
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               type="date"
@@ -311,7 +311,7 @@ export function TransferForm({ getAccessToken, onSaved, defaultCurrency }: Props
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Notas (opcional)"
