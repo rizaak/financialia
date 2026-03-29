@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '@common/prisma/prisma.service';
 import type { CreateAccountDto } from './dto/create-account.dto';
+import type { UpdateCreditCardAccountDto } from './dto/update-credit-card-account.dto';
 import { addUtcDays, getPreviousClosingEnd, startOfUtcDay } from './credit-card-period.utils';
 import { FinancialService } from './financial.service';
 
@@ -18,6 +19,7 @@ export type PrismaTx = Pick<
   | 'account'
   | 'user'
   | 'transaction'
+  | 'transfer'
   | 'tieredInvestment'
   | 'investmentTransaction'
   | 'category'
@@ -100,10 +102,19 @@ export class AccountsService {
     });
     const cur = user.defaultCurrency.toUpperCase().slice(0, 3);
 
-    const accounts = await this.prisma.account.findMany({
-      where: { userId, currency: cur, status: AccountStatus.ACTIVE },
-      include: { creditCard: true },
-    });
+    const [accounts, capitalRows] = await Promise.all([
+      this.prisma.account.findMany({
+        where: { userId, currency: cur, status: AccountStatus.ACTIVE },
+        include: { creditCard: true },
+      }),
+      this.prisma.tieredInvestment.findMany({
+        where: { userId, currency: cur, capitalAccountId: { not: null } },
+        select: { capitalAccountId: true },
+      }),
+    ]);
+    const capitalAccountIds = new Set(
+      capitalRows.map((r) => r.capitalAccountId).filter((id): id is string => id != null),
+    );
 
     let totalBanks = new Prisma.Decimal(0);
     let totalWallets = new Prisma.Decimal(0);
@@ -111,6 +122,9 @@ export class AccountsService {
     let totalCreditDebt = new Prisma.Decimal(0);
 
     for (const a of accounts) {
+      if (capitalAccountIds.has(a.id)) {
+        continue;
+      }
       const b = new Prisma.Decimal(a.balance);
       if (a.type === AccountType.BANK) {
         totalBanks = totalBanks.plus(b);
@@ -160,6 +174,8 @@ export class AccountsService {
       freeCashFlow: fcf.freeCashFlow,
       freeCashFlowBreakdown: {
         bankBalance: fcf.bankBalance,
+        liquidTieredPrincipal: fcf.liquidTieredPrincipal,
+        frozenTieredPrincipal: fcf.frozenTieredPrincipal,
         msiThisMonth: fcf.msiThisMonth,
         subscriptionsRemaining: fcf.subscriptionsRemaining,
         housingUtilitiesPending: fcf.housingUtilitiesPending,
@@ -246,6 +262,60 @@ export class AccountsService {
       where: { id: accountId },
       data: { status },
       include: { creditCard: true },
+    });
+  }
+
+  /**
+   * Actualiza alias, límite y/o CAT (tasa anual en fracción) de una tarjeta de crédito.
+   */
+  async updateCreditCardAccount(
+    userId: string,
+    accountId: string,
+    dto: UpdateCreditCardAccountDto,
+  ) {
+    const hasName = dto.name !== undefined;
+    const hasLimit = dto.creditLimit !== undefined;
+    const hasCat = dto.annualInterestRatePct !== undefined;
+    if (!hasName && !hasLimit && !hasCat) {
+      throw new BadRequestException('Indica al menos un campo para actualizar.');
+    }
+
+    const account = await this.prisma.account.findFirst({
+      where: { id: accountId, userId, type: AccountType.CREDIT_CARD },
+      include: { creditCard: true },
+    });
+    if (!account?.creditCard) {
+      throw new NotFoundException('Tarjeta de crédito no encontrada');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const accountData: Prisma.AccountUpdateInput = {};
+      if (hasName) {
+        accountData.name = dto.name!.trim();
+      }
+      if (hasLimit) {
+        accountData.creditLimit = new Prisma.Decimal(dto.creditLimit!);
+      }
+
+      const ccData: Prisma.CreditCardUpdateInput = {};
+      if (hasCat) {
+        ccData.annualInterestRatePct = new Prisma.Decimal(dto.annualInterestRatePct!);
+      }
+
+      if (Object.keys(accountData).length > 0) {
+        await tx.account.update({ where: { id: accountId }, data: accountData });
+      }
+      if (Object.keys(ccData).length > 0) {
+        await tx.creditCard.update({
+          where: { accountId },
+          data: ccData,
+        });
+      }
+
+      return tx.account.findFirstOrThrow({
+        where: { id: accountId },
+        include: { creditCard: true },
+      });
     });
   }
 
@@ -505,6 +575,65 @@ export class AccountsService {
     range?: { periodStart: Date; through: Date },
   ): Promise<StatementPaymentBreakdown> {
     return this.getStatementSummary(userId, accountId, range);
+  }
+
+  /**
+   * Crea una cuenta WALLET con saldo 0 para albergar el capital de una inversión por tramos.
+   */
+  async createTieredCapitalAccountInTx(
+    tx: PrismaTx,
+    userId: string,
+    investmentName: string,
+    currency: string,
+  ): Promise<{ id: string }> {
+    const safeName = investmentName.trim().slice(0, 160);
+    const label = `Inversión · ${safeName || 'Sin nombre'}`.slice(0, 200);
+    return tx.account.create({
+      data: {
+        userId,
+        name: label,
+        type: AccountType.WALLET,
+        currency: currency.toUpperCase().slice(0, 3),
+        balance: new Prisma.Decimal(0),
+      },
+      select: { id: true },
+    });
+  }
+
+  /**
+   * Traslado interno sin comisión, con registro `Transfer` (liquidez entre cuentas del mismo usuario).
+   */
+  async transferLiquidInTx(
+    tx: PrismaTx,
+    userId: string,
+    params: {
+      originAccountId: string;
+      destinationAccountId: string;
+      amount: Prisma.Decimal;
+      occurredAt: Date;
+      notes?: string | null;
+    },
+  ): Promise<void> {
+    const { originAccountId, destinationAccountId, amount, occurredAt, notes } = params;
+    if (originAccountId === destinationAccountId) {
+      throw new BadRequestException('El origen y el destino de la transferencia deben ser distintos.');
+    }
+    if (amount.lte(0)) {
+      throw new BadRequestException('El monto de la transferencia debe ser mayor que cero.');
+    }
+    await this.debitInTx(tx, originAccountId, userId, amount);
+    await this.creditInTx(tx, destinationAccountId, userId, amount);
+    await tx.transfer.create({
+      data: {
+        userId,
+        originAccountId,
+        destinationAccountId,
+        amount,
+        fee: new Prisma.Decimal(0),
+        occurredAt,
+        notes: notes?.trim() ?? null,
+      },
+    });
   }
 
   async debitInTx(

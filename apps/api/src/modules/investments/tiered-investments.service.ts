@@ -39,6 +39,8 @@ export type TieredDashboardInvestmentRow = {
   currency: string;
   payoutFrequency: PayoutFrequency;
   autoReinvest: boolean;
+  isLiquid: boolean;
+  maturityDate: string | null;
   effectiveAnnualPct: string;
   dailyEstimatedEarnings: string;
   tierProgressMessage: string;
@@ -153,20 +155,50 @@ export class TieredInvestmentsService {
         }
       }
 
+      const isLiquid = dto.isLiquid ?? true;
+      let maturityDate: Date | null = null;
+      if (!isLiquid) {
+        if (!dto.maturityDate) {
+          throw new BadRequestException(
+            'Indica la fecha de vencimiento cuando el capital no está disponible de inmediato.',
+          );
+        }
+        maturityDate = new Date(dto.maturityDate);
+        if (Number.isNaN(maturityDate.getTime())) {
+          throw new BadRequestException('Fecha de vencimiento inválida.');
+        }
+      }
+
       const amount = new Prisma.Decimal(dto.initialDeposit);
-      await this.accounts.debitInTx(tx, dto.originAccountId, userId, amount);
+      const capitalAcc = await this.accounts.createTieredCapitalAccountInTx(
+        tx,
+        userId,
+        dto.name.trim(),
+        invCur,
+      );
+      const occurredAt = new Date();
+      await this.accounts.transferLiquidInTx(tx, userId, {
+        originAccountId: dto.originAccountId,
+        destinationAccountId: capitalAcc.id,
+        amount,
+        occurredAt,
+        notes: `Apertura inversión: ${dto.name.trim()}`,
+      });
 
       const row = await tx.tieredInvestment.create({
         data: {
           userId,
           strategyId: strategy.id,
           originAccountId: dto.originAccountId,
+          capitalAccountId: capitalAcc.id,
           interestDestinationAccountId: dto.interestDestinationAccountId ?? null,
           name: dto.name.trim(),
           principal: amount,
           currency: invCur,
           payoutFrequency: dto.payoutFrequency,
           autoReinvest: dto.autoReinvest ?? false,
+          isLiquid,
+          maturityDate,
         },
       });
 
@@ -189,6 +221,7 @@ export class TieredInvestmentsService {
       include: {
         strategy: { include: { tiers: { orderBy: { sortOrder: 'asc' } } } },
         originAccount: true,
+        capitalAccount: true,
       },
     });
   }
@@ -222,22 +255,52 @@ export class TieredInvestmentsService {
       }
     }
 
+    const isLiquid = dto.isLiquid ?? true;
+    let maturityDate: Date | null = null;
+    if (!isLiquid) {
+      if (!dto.maturityDate) {
+        throw new BadRequestException(
+          'Indica la fecha de vencimiento cuando el capital no está disponible de inmediato.',
+        );
+      }
+      maturityDate = new Date(dto.maturityDate);
+      if (Number.isNaN(maturityDate.getTime())) {
+        throw new BadRequestException('Fecha de vencimiento inválida.');
+      }
+    }
+
     const amount = new Prisma.Decimal(dto.initialDeposit);
     const inv = await this.prisma.$transaction(async (tx) => {
       const dec = amount;
-      await this.accounts.debitInTx(tx, dto.originAccountId, userId, dec);
+      const capitalAcc = await this.accounts.createTieredCapitalAccountInTx(
+        tx,
+        userId,
+        dto.name.trim(),
+        invCur,
+      );
+      const occurredAt = new Date();
+      await this.accounts.transferLiquidInTx(tx, userId, {
+        originAccountId: dto.originAccountId,
+        destinationAccountId: capitalAcc.id,
+        amount: dec,
+        occurredAt,
+        notes: `Apertura inversión: ${dto.name.trim()}`,
+      });
 
       const row = await tx.tieredInvestment.create({
         data: {
           userId,
           strategyId: dto.strategyId,
           originAccountId: dto.originAccountId,
+          capitalAccountId: capitalAcc.id,
           interestDestinationAccountId: dto.interestDestinationAccountId ?? null,
           name: dto.name.trim(),
           principal: dec,
           currency: invCur,
           payoutFrequency: dto.payoutFrequency,
           autoReinvest: dto.autoReinvest ?? false,
+          isLiquid,
+          maturityDate,
         },
       });
 
@@ -257,7 +320,11 @@ export class TieredInvestmentsService {
     await this.refreshMetrics(inv.id);
     return this.prisma.tieredInvestment.findUniqueOrThrow({
       where: { id: inv.id },
-      include: { strategy: { include: { tiers: true } } },
+      include: {
+        strategy: { include: { tiers: true } },
+        originAccount: true,
+        capitalAccount: true,
+      },
     });
   }
 
@@ -268,6 +335,12 @@ export class TieredInvestmentsService {
     });
     if (!invRow) {
       throw new NotFoundException('Inversión no encontrada');
+    }
+    const capitalAccountId = invRow.capitalAccountId;
+    if (!capitalAccountId) {
+      throw new BadRequestException(
+        'Esta inversión no tiene cuenta de capital vinculada; crea una inversión nueva o contacta soporte.',
+      );
     }
 
     const fromAccountId = dto.fromAccountId ?? invRow.originAccountId;
@@ -282,7 +355,13 @@ export class TieredInvestmentsService {
     const dec = new Prisma.Decimal(dto.amount);
 
     await this.prisma.$transaction(async (tx) => {
-      await this.accounts.debitInTx(tx, fromAccountId, userId, dec);
+      await this.accounts.transferLiquidInTx(tx, userId, {
+        originAccountId: fromAccountId,
+        destinationAccountId: capitalAccountId,
+        amount: dec,
+        occurredAt: new Date(),
+        notes: `Aporte inversión: ${invRow.name}`,
+      });
 
       await tx.tieredInvestment.update({
         where: { id: investmentId },
@@ -346,6 +425,9 @@ export class TieredInvestmentsService {
           where: { id: investmentId },
           data: { principal: { increment: daily } },
         });
+        if (inv.capitalAccountId) {
+          await this.accounts.creditInTx(tx, inv.capitalAccountId, userId, daily);
+        }
         await tx.investmentTransaction.create({
           data: {
             investmentId,
@@ -436,6 +518,8 @@ export class TieredInvestmentsService {
         currency: inv.currency,
         payoutFrequency: inv.payoutFrequency,
         autoReinvest: inv.autoReinvest,
+        isLiquid: inv.isLiquid,
+        maturityDate: inv.maturityDate ? inv.maturityDate.toISOString() : null,
         effectiveAnnualPct: blend.averageAnnualPct.toFixed(4),
         dailyEstimatedEarnings: dailyDec.toString(),
         tierProgressMessage: ui.message,

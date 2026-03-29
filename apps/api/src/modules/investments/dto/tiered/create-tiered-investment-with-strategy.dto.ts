@@ -4,6 +4,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -11,6 +12,7 @@ import {
   IsUUID,
   Length,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -66,4 +68,14 @@ export class CreateTieredInvestmentWithStrategyDto {
   @IsOptional()
   @IsBoolean()
   autoReinvest?: boolean;
+
+  /** Por defecto true: el capital cuenta como liquidez inmediata. */
+  @IsOptional()
+  @IsBoolean()
+  isLiquid?: boolean;
+
+  /** Obligatoria si `isLiquid === false`. */
+  @ValidateIf((o: CreateTieredInvestmentWithStrategyDto) => o.isLiquid === false)
+  @IsDateString()
+  maturityDate?: string;
 }

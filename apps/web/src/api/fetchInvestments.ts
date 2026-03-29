@@ -46,6 +46,10 @@ export type CreateTieredInvestmentWithStrategyBody = {
   currency?: string;
   payoutFrequency: 'DAILY' | 'MONTHLY' | 'ANNUAL';
   autoReinvest?: boolean;
+  /** Por defecto true en API. */
+  isLiquid?: boolean;
+  /** ISO 8601; obligatorio si `isLiquid === false`. */
+  maturityDate?: string;
 };
 
 export type TieredInvestmentCreated = {

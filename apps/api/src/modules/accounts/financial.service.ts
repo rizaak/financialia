@@ -24,6 +24,10 @@ export type RealLiquidityRecurringKpi = {
 export type FreeCashFlowBreakdown = {
   /** Saldo total en cuentas tipo BANK (moneda base). */
   bankBalance: string;
+  /** Principal en inversiones por tramos marcadas como líquidas (misma moneda base). */
+  liquidTieredPrincipal: string;
+  /** Principal en inversiones no líquidas (congelado; no suma al disponible real). */
+  frozenTieredPrincipal: string;
   /** Suma de mensualidades MSI / planes activos en tarjetas (moneda base). */
   msiThisMonth: string;
   /** Suscripciones recurrentes (no vivienda/servicios) aún pendientes en el mes. */
@@ -32,7 +36,7 @@ export type FreeCashFlowBreakdown = {
   housingUtilitiesPending: string;
   /** Gastos en `RecurringEvent` (tabla unificada) aún pendientes en el mes. */
   recurringEventsExpensePending: string;
-  /** bankBalance − MSI − suscripciones − renta/servicios − recurringEvents (puede ser negativo). */
+  /** bankBalance + liquidTieredPrincipal − MSI − suscripciones − renta/servicios − recurringEvents (puede ser negativo). */
   freeCashFlow: string;
 };
 
@@ -124,8 +128,8 @@ export class FinancialService {
   }
 
   /**
-   * Flujo de caja libre: saldo en bancos menos MSI, suscripciones (RecurringExpense), renta/servicios,
-   * y gastos pendientes en `RecurringEvent`.
+   * Flujo de caja libre: saldo en bancos + principal en inversiones por tramos **líquidas** (`isLiquid`),
+   * menos MSI, suscripciones (RecurringExpense), renta/servicios y gastos pendientes en `RecurringEvent`.
    */
   async getFreeCashFlow(userId: string): Promise<FreeCashFlowBreakdown> {
     const user = await this.prisma.user.findUniqueOrThrow({
@@ -135,10 +139,19 @@ export class FinancialService {
     const cur = user.defaultCurrency.toUpperCase().slice(0, 3);
     const tz = user.timezone ?? 'UTC';
 
-    const [bankAgg, msiAgg, recurringRows, recurringEventsExpensePendingStr] = await Promise.all([
+    const [bankAgg, tieredLiquidAgg, tieredFrozenAgg, msiAgg, recurringRows, recurringEventsExpensePendingStr] =
+      await Promise.all([
       this.prisma.account.aggregate({
         where: { userId, type: 'BANK', currency: cur },
         _sum: { balance: true },
+      }),
+      this.prisma.tieredInvestment.aggregate({
+        where: { userId, currency: cur, isLiquid: true },
+        _sum: { principal: true },
+      }),
+      this.prisma.tieredInvestment.aggregate({
+        where: { userId, currency: cur, isLiquid: false },
+        _sum: { principal: true },
       }),
       this.prisma.installmentPlan.aggregate({
         where: {
@@ -155,6 +168,8 @@ export class FinancialService {
     ]);
 
     const bankBalance = new Prisma.Decimal(bankAgg._sum.balance ?? 0);
+    const liquidTieredPrincipal = new Prisma.Decimal(tieredLiquidAgg._sum.principal ?? 0);
+    const frozenTieredPrincipal = new Prisma.Decimal(tieredFrozenAgg._sum.principal ?? 0);
     const msiThisMonth = new Prisma.Decimal(msiAgg._sum.monthlyAmount ?? 0);
     const recurringEventsExpensePending = new Prisma.Decimal(recurringEventsExpensePendingStr);
 
@@ -175,6 +190,7 @@ export class FinancialService {
     }
 
     const freeCashFlow = bankBalance
+      .plus(liquidTieredPrincipal)
       .minus(msiThisMonth)
       .minus(subscriptionsRemaining)
       .minus(housingUtilitiesPending)
@@ -182,6 +198,8 @@ export class FinancialService {
 
     return {
       bankBalance: bankBalance.toString(),
+      liquidTieredPrincipal: liquidTieredPrincipal.toString(),
+      frozenTieredPrincipal: frozenTieredPrincipal.toString(),
       msiThisMonth: msiThisMonth.toString(),
       subscriptionsRemaining: subscriptionsRemaining.toString(),
       housingUtilitiesPending: housingUtilitiesPending.toString(),

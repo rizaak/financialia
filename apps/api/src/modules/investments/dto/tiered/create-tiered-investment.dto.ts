@@ -1,6 +1,17 @@
 import { PayoutFrequency } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Length, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateTieredInvestmentDto {
   @IsUUID()
@@ -33,4 +44,12 @@ export class CreateTieredInvestmentDto {
   @IsOptional()
   @IsBoolean()
   autoReinvest?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isLiquid?: boolean;
+
+  @ValidateIf((o: CreateTieredInvestmentDto) => o.isLiquid === false)
+  @IsDateString()
+  maturityDate?: string;
 }

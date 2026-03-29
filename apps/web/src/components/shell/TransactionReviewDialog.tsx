@@ -422,6 +422,11 @@ export function TransactionReviewDialog({
                   {initialValues.creditCardExpenseAcknowledgment}
                 </Alert>
               ) : null}
+              {initialValues.liquidityWarning ? (
+                <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 2 }}>
+                  {initialValues.liquidityWarning}
+                </Alert>
+              ) : null}
             </Box>
 
             <Box>

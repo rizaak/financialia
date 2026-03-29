@@ -8,6 +8,7 @@ import { AppProviders } from './theme/AppProviders';
 import type { ShellUser } from './layouts/shellContext';
 import { AccountDetailPage } from './pages/AccountDetailPage';
 import { AccountsPage } from './pages/AccountsPage';
+import { CommitmentsPage } from './pages/CommitmentsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -88,6 +89,7 @@ function Auth0Dashboard() {
           <Route path="registro" element={<RegisterPage />} />
           <Route path="cuentas/:accountId" element={<AccountDetailPage />} />
           <Route path="cuentas" element={<AccountsPage />} />
+          <Route path="compromisos" element={<CommitmentsPage />} />
           <Route path="inversiones" element={<InvestmentsPage />} />
           <Route path="perfil" element={<ProfilePage />} />
           <Route path="ajustes" element={<SettingsPage />} />
@@ -133,6 +135,7 @@ function DevTokenDashboard() {
           <Route path="registro" element={<RegisterPage />} />
           <Route path="cuentas/:accountId" element={<AccountDetailPage />} />
           <Route path="cuentas" element={<AccountsPage />} />
+          <Route path="compromisos" element={<CommitmentsPage />} />
           <Route path="inversiones" element={<InvestmentsPage />} />
           <Route path="perfil" element={<ProfilePage />} />
           <Route path="ajustes" element={<SettingsPage />} />

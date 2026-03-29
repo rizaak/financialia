@@ -45,6 +45,9 @@ export function NewInvestmentDialog({
   const [account, setAccount] = useState<AccountRow | null>(null);
   const [payoutFrequency, setPayoutFrequency] = useState<'DAILY' | 'MONTHLY' | 'ANNUAL'>('MONTHLY');
   const [autoReinvest, setAutoReinvest] = useState(false);
+  /** true = dinero disponible de inmediato (API `isLiquid`). */
+  const [isLiquid, setIsLiquid] = useState(true);
+  const [maturityDate, setMaturityDate] = useState('');
   const [submitErr, setSubmitErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,6 +59,8 @@ export function NewInvestmentDialog({
     setAccount(null);
     setPayoutFrequency('MONTHLY');
     setAutoReinvest(false);
+    setIsLiquid(true);
+    setMaturityDate('');
     setSubmitErr(null);
     void (async () => {
       try {
@@ -114,6 +119,14 @@ export function NewInvestmentDialog({
       }
     }
 
+    if (!isLiquid) {
+      const md = maturityDate.trim();
+      if (!md) {
+        setSubmitErr('Indica la fecha de vencimiento cuando el capital no está disponible de inmediato.');
+        return;
+      }
+    }
+
     const tiersPayload = tiers.map((row, i) => {
       const isLast = i === tiers.length - 1;
       const raw = row.upperLimit.trim().replace(/,/g, '');
@@ -134,6 +147,8 @@ export function NewInvestmentDialog({
         currency: account.currency ?? defaultCurrency,
         payoutFrequency,
         autoReinvest,
+        isLiquid,
+        ...(isLiquid ? {} : { maturityDate: `${maturityDate.trim()}T12:00:00.000Z` }),
         tiers: tiersPayload,
       });
       toast.success(
@@ -197,6 +212,30 @@ export function NewInvestmentDialog({
             }
             label="Reinvertir intereses automáticamente"
           />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isLiquid}
+                onChange={(e) => {
+                  setIsLiquid(e.target.checked);
+                  if (e.target.checked) setMaturityDate('');
+                }}
+              />
+            }
+            label="¿Dinero disponible de inmediato?"
+          />
+          {!isLiquid ? (
+            <TextField
+              label="Fecha de vencimiento (liberación del capital)"
+              type="date"
+              value={maturityDate}
+              onChange={(e) => setMaturityDate(e.target.value)}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+            />
+          ) : null}
 
           {submitErr ? (
             <Alert severity="error" variant="outlined">
