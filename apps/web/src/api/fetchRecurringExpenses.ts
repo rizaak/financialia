@@ -33,6 +33,66 @@ export type CreateRecurringExpenseBody = {
   currency?: string;
 };
 
+export type RecurringExpenseListRow = {
+  id: string;
+  name: string;
+  amount: string;
+  currency: string;
+  frequency: RecurringFrequency;
+  billingDay: number;
+  billingMonth: number | null;
+  isArchived: boolean;
+  category: { id: string; name: string; slug: string };
+  account: { id: string; name: string; type: string; currency: string };
+};
+
+export type PatchRecurringExpenseBody = {
+  name?: string;
+  amount?: number;
+  billingDay?: number;
+  frequency?: RecurringFrequency;
+  billingMonth?: number | null;
+  isArchived?: boolean;
+};
+
+export async function fetchRecurringExpensesList(
+  getAccessToken: () => Promise<string>,
+  options?: { includeArchived?: boolean },
+): Promise<RecurringExpenseListRow[]> {
+  const token = await getAccessToken();
+  const q = new URLSearchParams();
+  if (options?.includeArchived) q.set('includeArchived', 'true');
+  const suffix = q.toString() ? `?${q}` : '';
+  const res = await fetch(`${getApiBaseUrl()}/recurring-expenses${suffix}`, {
+    headers: {
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  await assertOk(res);
+  return res.json() as Promise<RecurringExpenseListRow[]>;
+}
+
+export async function patchRecurringExpense(
+  getAccessToken: () => Promise<string>,
+  id: string,
+  body: PatchRecurringExpenseBody,
+): Promise<unknown> {
+  const token = await getAccessToken();
+  const res = await fetch(`${getApiBaseUrl()}/recurring-expenses/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  await assertOk(res);
+  return res.json();
+}
+
 export async function fetchUpcomingCharges(
   getAccessToken: () => Promise<string>,
   days = 7,

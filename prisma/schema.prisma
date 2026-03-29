@@ -215,6 +215,8 @@ model Account {
   transfersTo                   Transfer[]           @relation("TransferDest")
   tieredInvestmentsOrigin       TieredInvestment[]   @relation("TieredInvOrigin")
   tieredInvestmentsInterestDest TieredInvestment[]   @relation("TieredInvInterestDest")
+  /// Cuenta WALLET donde reside el capital cautivo de una inversión por tramos (1:1).
+  tieredInvestmentCapital       TieredInvestment?    @relation("TieredInvCapital")
   recurringExpenses             RecurringExpense[]
   recurringIncomes              RecurringIncome[]
   recurringEvents               RecurringEvent[]
@@ -519,6 +521,8 @@ model TieredInvestment {
   strategyId                   String           @map("strategy_id") @db.Uuid
   /// Cuenta de la que salió el capital (y aportes adicionales por defecto).
   originAccountId              String           @map("origin_account_id") @db.Uuid
+  /// Cuenta WALLET interna: saldo = principal cautivo; las aperturas/aportes generan `Transfer` hacia aquí.
+  capitalAccountId             String?          @unique @map("capital_account_id") @db.Uuid
   /// Si no hay reinversión, los intereses van a esta cuenta; si es null, se usa originAccountId.
   interestDestinationAccountId String?          @map("interest_destination_account_id") @db.Uuid
   name                         String
@@ -528,12 +532,16 @@ model TieredInvestment {
   autoReinvest                 Boolean          @default(false) @map("auto_reinvest")
   dailyEstimatedEarnings       Decimal?         @map("daily_estimated_earnings") @db.Decimal(19, 8)
   effectiveAnnualPct           Decimal?         @map("effective_annual_pct") @db.Decimal(12, 6)
+  /// Si false, el principal no cuenta como liquidez inmediata (hasta maturityDate).
+  isLiquid                     Boolean          @default(true) @map("is_liquid")
+  maturityDate                 DateTime?        @map("maturity_date")
   createdAt                    DateTime         @default(now()) @map("created_at")
   updatedAt                    DateTime         @updatedAt @map("updated_at")
 
   user                       User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   strategy                   InvestmentStrategy      @relation(fields: [strategyId], references: [id], onDelete: Restrict)
   originAccount              Account                 @relation("TieredInvOrigin", fields: [originAccountId], references: [id], onDelete: Restrict)
+  capitalAccount             Account?                @relation("TieredInvCapital", fields: [capitalAccountId], references: [id], onDelete: Restrict)
   interestDestinationAccount Account?                @relation("TieredInvInterestDest", fields: [interestDestinationAccountId], references: [id], onDelete: SetNull)
   transactions               InvestmentTransaction[]
 

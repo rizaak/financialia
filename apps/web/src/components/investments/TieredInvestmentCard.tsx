@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
+import LockClockIcon from '@mui/icons-material/LockClock';
+import { Box, Card, CardContent, Chip, Stack, Tooltip, Typography } from '@mui/material';
 import type { TieredInvestmentRowApi } from '../../types/investmentsSummary';
 import { formatMoney } from '../../lib/formatMoney';
 import { TierInterestProgressBar } from './TierInterestProgressBar';
@@ -19,11 +20,25 @@ type Props = {
   currencyCode: string;
 };
 
+function formatReleaseDate(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('es-MX', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
 export function TieredInvestmentCard({ row, currencyCode }: Props) {
   const principal = Number(row.principal);
   const apy = Number(row.effectiveAnnualPct);
   const daily = Number(row.dailyEstimatedEarnings);
   const cur = row.currency || currencyCode;
+  const frozen = row.isLiquid === false;
 
   return (
     <Card
@@ -38,9 +53,16 @@ export function TieredInvestmentCard({ row, currencyCode }: Props) {
       <CardContent sx={{ p: 2.5 }}>
         <Stack spacing={2.5}>
           <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1} flexWrap="wrap">
-            <Typography variant="h6" fontWeight={800}>
-              {row.name}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+              {frozen ? (
+                <Tooltip title={`Capital congelado hasta ${formatReleaseDate(row.maturityDate)}`}>
+                  <LockClockIcon color="warning" sx={{ flexShrink: 0 }} fontSize="small" />
+                </Tooltip>
+              ) : null}
+              <Typography variant="h6" fontWeight={800} sx={{ minWidth: 0 }}>
+                {row.name}
+              </Typography>
+            </Stack>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Chip
                 size="small"
@@ -60,6 +82,19 @@ export function TieredInvestmentCard({ row, currencyCode }: Props) {
                     fontWeight: 600,
                     bgcolor: 'success.50',
                     color: 'success.dark',
+                    border: 'none',
+                  }}
+                />
+              ) : null}
+              {frozen ? (
+                <Chip
+                  size="small"
+                  icon={<LockClockIcon sx={{ fontSize: '1rem !important' }} />}
+                  label={`Libera ${formatReleaseDate(row.maturityDate)}`}
+                  sx={{
+                    fontWeight: 600,
+                    bgcolor: 'warning.50',
+                    color: 'warning.dark',
                     border: 'none',
                   }}
                 />

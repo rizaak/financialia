@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { AccountType, TransactionType } from '@prisma/client';
+import { AccountType, Prisma, TransactionType } from '@prisma/client';
+import { PrismaService } from '@common/prisma/prisma.service';
 import { AccountsService } from '../accounts/accounts.service';
+import { FinancialService } from '../accounts/financial.service';
 import { CategoriesService } from '../categories/categories.service';
 import { AiParserService } from './ai-parser.service';
 import { mapAiLabelToSlug } from './ai-category-map';
@@ -21,6 +23,8 @@ export class NaturalLanguageParseService {
     private readonly aiParser: AiParserService,
     private readonly accounts: AccountsService,
     private readonly categories: CategoriesService,
+    private readonly financial: FinancialService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async parseForUser(userId: string, text: string): Promise<ParseNaturalLanguageForUserResponse> {
@@ -63,6 +67,35 @@ export class NaturalLanguageParseService {
           })()
         : null;
 
+    let liquidityWarning: string | null = null;
+    if (
+      transactionType === 'EXPENSE' &&
+      matchedAccount &&
+      matchedAccount.type !== AccountType.CREDIT_CARD
+    ) {
+      const userRow = await this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { defaultCurrency: true },
+      });
+      const defCur = userRow.defaultCurrency.toUpperCase().slice(0, 3);
+      const accCur = matchedAccount.currency.toUpperCase().slice(0, 3);
+      if (accCur === defCur) {
+        const fcf = await this.financial.getFreeCashFlow(userId);
+        const liquidAvailable = new Prisma.Decimal(fcf.freeCashFlow);
+        const frozen = new Prisma.Decimal(fcf.frozenTieredPrincipal);
+        const amt = new Prisma.Decimal(parsed.amount);
+        if (frozen.gt(0) && amt.gt(liquidAvailable) && amt.lte(liquidAvailable.plus(frozen))) {
+          const curCode = accCur;
+          const formattedFrozen = new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: curCode,
+            maximumFractionDigits: 2,
+          }).format(Number(frozen));
+          liquidityWarning = `Tu patrimonio cubre este gasto, pero tienes ${formattedFrozen} congelados en inversiones. No tienes suficiente liquidez hoy.`;
+        }
+      }
+    }
+
     const natural: NaturalLanguageParseResult = {
       amount: parsed.amount,
       description: parsed.description,
@@ -75,6 +108,7 @@ export class NaturalLanguageParseService {
       installmentInterestFree: parsed.installmentInterestFree,
       isInstallment: parsed.isInstallment,
       creditCardExpenseAcknowledgment,
+      liquidityWarning,
     };
 
     return {

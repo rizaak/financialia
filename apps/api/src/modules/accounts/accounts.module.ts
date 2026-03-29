@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AccountsController } from './accounts.controller';
+import { InstallmentPlansController } from './installment-plans.controller';
 import { AccountsService } from './accounts.service';
 import { CreditCardService } from './credit-card.service';
 import { CreditCardStatementService } from './credit-card-statement.service';
@@ -9,7 +10,7 @@ import { AccountsTransactionsListener } from './listeners/accounts-transactions.
 import { FinancialService } from './financial.service';
 
 @Module({
-  controllers: [AccountsController],
+  controllers: [AccountsController, InstallmentPlansController],
   providers: [
     FinancialService,
     AccountsService,
