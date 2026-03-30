@@ -1,0 +1,55 @@
+<svg
+  width="64"
+  height="64"
+  viewBox="0 0 64 64"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  style="background: transparent"
+  overflow="visible"
+>
+  <defs>
+    <linearGradient id="vantix-grad" x1="8" y1="56" x2="56" y2="8" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C4A6E" />
+      <stop offset="0.45" stop-color="#1565C0" />
+      <stop offset="1" stop-color="#22D3EE" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sin rect ni fondo: solo trazos sobre alpha 0 -->
+  <path
+    d="M32 6 L52 17.5 L52 40.5 L32 52 L12 40.5 L12 17.5 Z"
+    fill="none"
+    stroke="url(#vantix-grad)"
+    stroke-width="2.25"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    opacity="0.95"
+  />
+  <path
+    d="M12 17.5 L32 52 L52 17.5"
+    fill="none"
+    stroke="url(#vantix-grad)"
+    stroke-width="2.75"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Dos segmentos separados evita artefactos en el cruce (manchas/cuadrados) -->
+  <path
+    d="M12 40.5 L52 17.5"
+    fill="none"
+    stroke="url(#vantix-grad)"
+    stroke-width="2.35"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.92"
+  />
+  <path
+    d="M52 40.5 L12 17.5"
+    fill="none"
+    stroke="url(#vantix-grad)"
+    stroke-width="2.35"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.92"
+  />
+</svg>

@@ -24,8 +24,10 @@ import { SIDEBAR_NAV_ITEMS } from '../components/nav/sidebarNavConfig';
 import { FinancialChatDrawerTrigger } from '../components/shell/FinancialChatDrawerTrigger';
 import { SmartCommandBar } from '../components/shell/SmartCommandBar';
 import { ShellQuickActionsFab } from '../components/shell/ShellQuickActionsFab';
+import { VersionBadge } from '../components/version/VersionBadge';
 import { VanAssistant } from '../components/shell/VanAssistant';
 import { useVanSidebarStatus } from '../hooks/useVanSidebarStatus';
+import { useVersionUpdateCheck } from '../hooks/useVersionUpdateCheck';
 import { normalizeDisplayCurrency, type DisplayCurrency } from '../lib/displayCurrency';
 import { useFinanceStore } from '../stores/financeStore';
 import { usePrivacyStore } from '../stores/privacyStore';
@@ -122,6 +124,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
   const drawerWidth = isMdUp ? (mini ? DRAWER_MINI : DRAWER_FULL) : DRAWER_FULL;
   const narrow = isMdUp && mini;
   const vanSidebarStatus = useVanSidebarStatus();
+  useVersionUpdateCheck();
 
   function renderDrawerContent(showMini: boolean) {
     return (
@@ -321,14 +324,18 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
             mt: 6,
             pt: 3,
             pb: 2,
-            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1.5,
             borderTop: 1,
             borderColor: 'rgba(255,255,255,0.1)',
           }}
         >
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             © 2026 Vantix. Todos los derechos reservados.
           </Typography>
+          <VersionBadge />
         </Box>
       </Box>
       <FinancialChatDrawerTrigger getAccessToken={getAccessToken} />
