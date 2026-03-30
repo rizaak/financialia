@@ -18,7 +18,7 @@ export function DashboardInvestmentsMini({ data, currencyCode }: Props) {
   const top = tiered.investments.slice(0, 3);
 
   const innerCardClass =
-    'flex min-h-[148px] h-full flex-col rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm';
+    'flex min-h-[148px] h-full flex-col rounded-[12px] border border-white/10 bg-white/[0.03] p-4 shadow-none backdrop-blur-[12px]';
 
   return (
     <SectionCard
@@ -41,7 +41,7 @@ export function DashboardInvestmentsMini({ data, currencyCode }: Props) {
               py: 0.5,
             }}
           >
-            <TrendingUpIcon sx={{ fontSize: 28, color: 'success.main' }} />
+            <TrendingUpIcon sx={{ fontSize: 28, color: '#34d399' }} />
             <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: '-0.5px', lineHeight: 1.2 }}>
               {Number.isFinite(daily24h) ? (
                 <MoneyText>{formatMoney(String(daily24h), currencyCode)}</MoneyText>
@@ -57,7 +57,7 @@ export function DashboardInvestmentsMini({ data, currencyCode }: Props) {
 
         <Box className={innerCardClass} sx={{ gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-            <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 20, color: 'text.secondary', opacity: 0.85 }} />
+            <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 20, color: '#38bdf8' }} />
             <Typography variant="caption" color="text.secondary" fontWeight={700}>
               Capital en tramos
             </Typography>
@@ -85,8 +85,16 @@ export function DashboardInvestmentsMini({ data, currencyCode }: Props) {
               <LinearProgress
                 variant="determinate"
                 value={Math.min(100, Math.max(0, inv.tierProgress01 * 100))}
-                sx={{ height: 8, borderRadius: 1, bgcolor: 'grey.200', '& .MuiLinearProgress-bar': { borderRadius: 1 } }}
-                color="success"
+                sx={{
+                  height: 8,
+                  borderRadius: 1,
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  '& .MuiLinearProgress-bar': {
+                    borderRadius: 1,
+                    background: 'linear-gradient(90deg, #34d399 0%, #6ee7b7 100%)',
+                    boxShadow: '0 0 14px rgba(52, 211, 153, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                  },
+                }}
               />
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
                 {inv.tierProgressMessage}

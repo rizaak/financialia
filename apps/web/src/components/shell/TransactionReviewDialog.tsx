@@ -365,10 +365,7 @@ export function TransactionReviewDialog({
       PaperProps={{
         elevation: 0,
         sx: {
-          borderRadius: 2,
-          border: 1,
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
+          maxWidth: 520,
         },
       }}
     >

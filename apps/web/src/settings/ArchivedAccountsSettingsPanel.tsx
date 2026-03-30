@@ -95,7 +95,7 @@ export function ArchivedAccountsSettingsPanel({ getAccessToken, notifyTransactio
         <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
+              <TableRow>
                 <TableCell>Nombre</TableCell>
                 <TableCell>Tipo</TableCell>
                 <TableCell>Moneda</TableCell>

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AccountStatus,
   AccountType,
   PayoutFrequency,
   Prisma,
@@ -49,12 +50,29 @@ export type TieredDashboardInvestmentRow = {
   tierSegments: TierSegmentRow[];
 };
 
+export type YieldSavingsAccountRow = {
+  accountId: string;
+  name: string;
+  balance: string;
+  investedBalance: string;
+  availableBalance: string;
+  currency: string;
+  effectiveAnnualPct: string;
+  dailyEstimatedEarnings: string;
+  tierProgressMessage: string;
+  tierProgress01: number;
+  currentTierSortOrder: number | null;
+  tierSegments: TierSegmentRow[];
+};
+
 export type TieredDashboardResponse = {
   netLiquidBalance: string;
   totalInvestedTiered: string;
   portfolioBlendedAnnualPct: string;
   projectedEarningsNext24h: string;
   investments: TieredDashboardInvestmentRow[];
+  /** Sofipos/bancos con estrategia de tramos: interés solo sobre saldo en cajita. */
+  yieldSavingsAccounts: YieldSavingsAccountRow[];
 };
 
 @Injectable()
@@ -529,6 +547,66 @@ export class TieredInvestmentsService {
       });
     }
 
+    const userCur = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { defaultCurrency: true },
+    });
+    const cur3 = userCur.defaultCurrency.toUpperCase().slice(0, 3);
+
+    const yieldAccounts = await this.prisma.account.findMany({
+      where: {
+        userId,
+        yieldStrategyId: { not: null },
+        status: AccountStatus.ACTIVE,
+        currency: cur3,
+      },
+      include: { yieldStrategy: { include: { tiers: { orderBy: { sortOrder: 'asc' } } } } },
+      orderBy: { name: 'asc' },
+    });
+
+    const yieldSavingsAccounts: YieldSavingsAccountRow[] = [];
+    for (const acc of yieldAccounts) {
+      const strat = acc.yieldStrategy;
+      if (!strat) {
+        continue;
+      }
+      const inv = Number(acc.investedBalance);
+      const tiers = this.mapTiers(strat.tiers);
+      const blend = this.calculator.blendPrincipalAcrossTiers(inv, tiers);
+      const dailyDec = new Prisma.Decimal(blend.dailyEstimatedEarnings.toFixed(8));
+      projected24h = projected24h.plus(dailyDec);
+      legs.push({
+        principal: inv,
+        effectiveAnnualPct: blend.averageAnnualPct,
+      });
+
+      const ui = this.calculator.tierProgressForUi(inv, tiers);
+      const principalNum = inv;
+      const tierSegments: TierSegmentRow[] = blend.slices
+        .filter((s) => s.amountInTier > 1e-12)
+        .map((s) => ({
+          sortOrder: s.sortOrder,
+          annualRatePct: s.annualRatePct.toFixed(2),
+          fractionOfPrincipal: principalNum > 0 ? s.amountInTier / principalNum : 0,
+          amountInTier: new Prisma.Decimal(s.amountInTier).toFixed(2),
+        }));
+      const balNum = Number(acc.balance);
+      yieldSavingsAccounts.push({
+        accountId: acc.id,
+        name: acc.name,
+        balance: acc.balance.toString(),
+        investedBalance: acc.investedBalance.toString(),
+        availableBalance: new Prisma.Decimal(balNum - inv).toFixed(4),
+        currency: acc.currency,
+        effectiveAnnualPct: blend.averageAnnualPct.toFixed(4),
+        dailyEstimatedEarnings: dailyDec.toString(),
+        tierProgressMessage: ui.message,
+        tierProgress01: ui.progressInCurrentTier,
+        currentTierSortOrder: ui.currentTierSortOrder,
+        tierSegments,
+      });
+    }
+
     const blended = this.calculator.portfolioBlendedAnnualPct(legs);
 
     return {
@@ -537,6 +615,7 @@ export class TieredInvestmentsService {
       portfolioBlendedAnnualPct: blended.toFixed(4),
       projectedEarningsNext24h: projected24h.toString(),
       investments: rows,
+      yieldSavingsAccounts,
     };
   }
 

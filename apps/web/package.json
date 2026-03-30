@@ -20,6 +20,7 @@
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "axios": "^1.13.6",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -31,13 +31,13 @@ export function InvestmentsPage() {
   }, [loadOverview]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl bg-transparent px-4 py-8 sm:px-6 lg:px-8">
       <InvestmentsView getAccessToken={getAccessToken} defaultCurrency={defaultCurrency} />
 
       <div className="mt-12">
         {overviewLoading ? (
           <SectionCard title="Portafolios clásicos" subtitle="Cargando…">
-            <p className="text-sm text-zinc-500">Cargando portafolios…</p>
+            <p className="text-sm text-[#94a3b8]">Cargando portafolios…</p>
           </SectionCard>
         ) : overviewError ? (
           <SectionCard title="Portafolios clásicos" subtitle="Error">
@@ -52,7 +52,7 @@ export function InvestmentsPage() {
           />
         ) : (
           <SectionCard title="Portafolios clásicos" subtitle="Sin datos">
-            <p className="text-sm text-zinc-600">No hay información para mostrar.</p>
+            <p className="text-sm text-[#94a3b8]">No hay información para mostrar.</p>
           </SectionCard>
         )}
       </div>

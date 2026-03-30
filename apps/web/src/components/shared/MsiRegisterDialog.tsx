@@ -156,10 +156,6 @@ export function MsiRegisterDialog({
         sx: {
           maxWidth: 500,
           width: '100%',
-          borderRadius: 2,
-          border: 1,
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
         },
       }}
     >

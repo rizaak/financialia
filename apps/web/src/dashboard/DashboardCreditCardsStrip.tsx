@@ -78,8 +78,12 @@ export function DashboardCreditCardsStrip({
     <div className="col-span-12">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Tarjetas</p>
-          <h2 className="text-lg font-bold text-zinc-900">Próximo pago y disponible</h2>
+          <p className="text-[0.9rem] font-semibold uppercase tracking-wide text-emerald-400/90">
+            Tarjetas
+          </p>
+          <h2 className="text-lg font-bold text-white" style={{ textShadow: 'none' }}>
+            Próximo pago y disponible
+          </h2>
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -94,18 +98,18 @@ export function DashboardCreditCardsStrip({
               elevation={0}
               sx={{
                 p: 2,
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-                background: (t) =>
-                  t.palette.mode === 'dark'
-                    ? 'linear-gradient(145deg, rgba(16,185,129,0.08) 0%, rgba(15,23,42,0.9) 100%)'
-                    : 'linear-gradient(145deg, rgba(16,185,129,0.08) 0%, #fff 100%)',
+                borderRadius: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'rgba(255, 255, 255, 0.05) !important',
+                backgroundImage: 'none !important',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                boxShadow: 'none',
               }}
             >
               <Stack spacing={1.5}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
-                  <Typography variant="subtitle1" fontWeight={800}>
+                  <Typography variant="subtitle1" fontWeight={800} sx={{ color: '#ffffff', textShadow: 'none' }}>
                     {a.name}
                   </Typography>
                   {data ? (
@@ -124,21 +128,46 @@ export function DashboardCreditCardsStrip({
                     <Skeleton variant="text" width="92%" height={18} />
                   </Stack>
                 ) : st?.status === 'err' ? (
-                  <Typography variant="body2" color="error">
+                  <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'error.light', textShadow: 'none' }}>
                     {st.message}
                   </Typography>
                 ) : data ? (
                   <>
-                    <Typography variant="h6" fontWeight={800} sx={{ lineHeight: 1.2 }}>
-                      Próximo pago: {formatMoney(data.paymentToAvoidInterest ?? '0', data.currency || cur)}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.9rem',
+                        lineHeight: 1.45,
+                        textShadow: 'none',
+                      }}
+                    >
+                      <Box component="span" sx={{ color: '#E2E8F0' }}>
+                        Próximo pago:{' '}
+                      </Box>
+                      <Box component="span" sx={{ color: '#FFFFFF', fontWeight: 700 }}>
+                        {formatMoney(data.paymentToAvoidInterest ?? '0', data.currency || cur)}
+                      </Box>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Disponible:{' '}
-                      <Box component="span" fontWeight={700} color="text.primary">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.9rem',
+                        lineHeight: 1.45,
+                        textShadow: 'none',
+                      }}
+                    >
+                      <Box component="span" sx={{ color: '#E2E8F0' }}>
+                        Disponible:{' '}
+                      </Box>
+                      <Box component="span" sx={{ color: '#FFFFFF', fontWeight: 700 }}>
                         {formatMoney(data.availableCredit ?? '0', data.currency || cur)}
                       </Box>
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      sx={{ color: '#94a3b8', fontSize: '0.9rem', textShadow: 'none' }}
+                    >
                       Deuda actual {formatMoney(data.currentDebt ?? '0', data.currency || cur)} · Límite{' '}
                       {formatMoney(data.creditLimit ?? '0', data.currency || cur)}
                     </Typography>

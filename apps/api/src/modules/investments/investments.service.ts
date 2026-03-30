@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, type InvestmentPortfolio, type InvestmentPosition } from '@prisma/client';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  InvestmentPositionKind,
+  Prisma,
+  type InvestmentPortfolio,
+  type InvestmentPosition,
+} from '@prisma/client';
 import { PrismaService } from '@common/prisma/prisma.service';
 import type { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import type { CreatePositionDto } from './dto/create-position.dto';
@@ -15,6 +20,12 @@ export type PositionProjection = {
   expectedAnnualReturnPct: string;
   projectedValueAfter1y: string;
   growthPctVsInitial: string;
+  kind: InvestmentPositionKind;
+  maturityDate: string | null;
+  agreedAnnualRatePct: string | null;
+  marketValue: string | null;
+  /** Plusvalía % vs capital inicial cuando hay valor de mercado (renta variable). */
+  unrealizedPlPct: string | null;
 };
 
 export type PortfolioOverview = {
@@ -81,6 +92,13 @@ export class InvestmentsService {
     dto: CreatePositionDto,
   ): Promise<InvestmentPosition> {
     await this.ensurePortfolioOwned(portfolioId, userId);
+    const kind = dto.kind ?? InvestmentPositionKind.VARIABLE;
+    if (kind === InvestmentPositionKind.FIXED_TERM) {
+      if (!dto.maturityDate || dto.agreedAnnualRatePct == null) {
+        throw new BadRequestException('Plazo fijo requiere fecha de vencimiento y tasa pactada.');
+      }
+    }
+
     return this.prisma.investmentPosition.create({
       data: {
         portfolioId,
@@ -88,7 +106,38 @@ export class InvestmentsService {
         initialAmount: new Prisma.Decimal(dto.initialAmount),
         expectedAnnualReturnPct: new Prisma.Decimal(dto.expectedAnnualReturnPct),
         notes: dto.notes,
+        kind,
+        maturityDate: dto.maturityDate ? new Date(dto.maturityDate) : undefined,
+        agreedAnnualRatePct:
+          dto.agreedAnnualRatePct != null ? new Prisma.Decimal(dto.agreedAnnualRatePct) : undefined,
+        marketValue: dto.marketValue != null ? new Prisma.Decimal(dto.marketValue) : undefined,
       },
+    });
+  }
+
+  async recordMarketValue(userId: string, positionId: string, marketValue: number) {
+    await this.ensurePositionOwned(positionId, userId);
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.investmentPosition.update({
+        where: { id: positionId },
+        data: { marketValue: new Prisma.Decimal(marketValue) },
+      });
+      await tx.investmentPositionValueSnapshot.create({
+        data: {
+          positionId,
+          marketValue: new Prisma.Decimal(marketValue),
+        },
+      });
+      return updated;
+    });
+  }
+
+  async listPositionValueHistory(userId: string, positionId: string) {
+    await this.ensurePositionOwned(positionId, userId);
+    return this.prisma.investmentPositionValueSnapshot.findMany({
+      where: { positionId },
+      orderBy: { recordedAt: 'asc' },
+      take: 400,
     });
   }
 
@@ -122,6 +171,17 @@ export class InvestmentsService {
     }
   }
 
+  private async ensurePositionOwned(positionId: string, userId: string) {
+    const pos = await this.prisma.investmentPosition.findFirst({
+      where: { id: positionId },
+      include: { portfolio: true },
+    });
+    if (!pos || pos.portfolio.userId !== userId) {
+      throw new NotFoundException('Posición no encontrada');
+    }
+    return pos;
+  }
+
   private async buildOverview(userId: string): Promise<InvestmentsOverviewResponse> {
     const portfolios = await this.prisma.investmentPortfolio.findMany({
       where: { userId },
@@ -147,6 +207,10 @@ export class InvestmentsService {
           ? new Prisma.Decimal(0)
           : projected.minus(initial).div(initial).mul(new Prisma.Decimal(100));
 
+        const mv = pos.marketValue != null ? new Prisma.Decimal(pos.marketValue) : null;
+        const unrealizedPlPct =
+          mv != null && !initial.isZero() ? mv.minus(initial).div(initial).mul(new Prisma.Decimal(100)) : null;
+
         return {
           id: pos.id,
           label: pos.label,
@@ -154,6 +218,11 @@ export class InvestmentsService {
           expectedAnnualReturnPct: rate.toString(),
           projectedValueAfter1y: projected.toString(),
           growthPctVsInitial: growthVsInitial.toFixed(2),
+          kind: pos.kind,
+          maturityDate: pos.maturityDate ? pos.maturityDate.toISOString() : null,
+          agreedAnnualRatePct: pos.agreedAnnualRatePct != null ? pos.agreedAnnualRatePct.toString() : null,
+          marketValue: pos.marketValue != null ? pos.marketValue.toString() : null,
+          unrealizedPlPct: unrealizedPlPct != null ? unrealizedPlPct.toFixed(2) : null,
         };
       });
 

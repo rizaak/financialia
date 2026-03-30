@@ -40,12 +40,15 @@ export function FreeCashFlowHighlight({ data, getAccessToken, onCommitmentsChang
   const [manageOpen, setManageOpen] = useState(false);
 
   return (
-    <Card
-      variant="outlined"
-      className="col-span-12 overflow-hidden border-emerald-500/40 bg-gradient-to-br from-emerald-500/12 via-background to-background shadow-sm dark:from-emerald-500/15"
-      sx={{ borderRadius: '16px' }}
-    >
-      <CardContent className="p-5 sm:p-6">
+    <Card variant="outlined" className="col-span-12 overflow-hidden border-emerald-500/40 shadow-none">
+      <CardContent
+        className="p-5 sm:p-6"
+        sx={{
+          borderRadius: '20px',
+          background:
+            'linear-gradient(145deg, rgba(16,185,129,0.14) 0%, rgba(2,6,23,0.35) 42%, rgba(2,6,23,0.55) 100%)',
+        }}
+      >
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'flex-start' }} justifyContent="space-between">
           <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
             <Stack direction="row" spacing={1.5} alignItems="center">
@@ -103,7 +106,7 @@ export function FreeCashFlowHighlight({ data, getAccessToken, onCommitmentsChang
                         borderRadius: 2,
                         border: 1,
                         borderColor: 'divider',
-                        bgcolor: 'background.paper',
+                        bgcolor: 'rgba(255,255,255,0.04)',
                         px: 1.25,
                         py: 1,
                         minHeight: 48,
@@ -147,7 +150,7 @@ export function FreeCashFlowHighlight({ data, getAccessToken, onCommitmentsChang
               borderRadius: 2,
               border: 1,
               borderColor: 'divider',
-              bgcolor: 'background.paper',
+              bgcolor: 'rgba(255,255,255,0.04)',
               px: 2,
               py: 1.75,
             }}

@@ -22,12 +22,6 @@ type Props = {
   statKey?: InvestmentStatKey;
 };
 
-const toneColor: Record<Tone, string> = {
-  default: 'text.primary',
-  positive: 'success.main',
-  negative: 'error.main',
-};
-
 function TrendArrow({ tone }: { tone: Tone }) {
   if (tone === 'positive') {
     return (
@@ -65,7 +59,12 @@ const iconByStat: Record<InvestmentStatKey, ReactNode> = {
   proyeccion: <AutoGraphOutlined sx={{ fontSize: 22 }} />,
 };
 
-const cardShadow = '0 2px 16px -4px rgba(15, 23, 42, 0.07), 0 4px 24px -8px rgba(15, 23, 42, 0.06)';
+const iconTintByStat: Record<InvestmentStatKey, { bg: string; color: string }> = {
+  patrimonio: { bg: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' },
+  rendimiento: { bg: 'rgba(52, 211, 153, 0.14)', color: '#34d399' },
+  ritmo: { bg: 'rgba(167, 139, 250, 0.16)', color: '#a78bfa' },
+  proyeccion: { bg: 'rgba(56, 189, 248, 0.12)', color: '#22d3ee' },
+};
 
 export function InvestmentStatCard({
   label,
@@ -79,17 +78,25 @@ export function InvestmentStatCard({
   const isHero = variant === 'hero';
   const isProyeccion = statKey === 'proyeccion';
   const headerIcon = statKey ? iconByStat[statKey] : null;
+  const iconTint = statKey ? iconTintByStat[statKey] : null;
 
   return (
     <Card
       elevation={0}
       sx={{
-        borderRadius: '16px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: cardShadow,
+        borderRadius: '12px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'transparent',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        boxShadow: 'none',
         overflow: 'visible',
-        ...(isHero ? { borderColor: 'success.light', bgcolor: 'grey.50' } : {}),
+        ...(isHero
+          ? {
+              borderColor: 'rgba(56, 189, 248, 0.35)',
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            }
+          : {}),
       }}
     >
       <CardHeader
@@ -103,8 +110,8 @@ export function InvestmentStatCard({
                 width: 40,
                 height: 40,
                 borderRadius: 2,
-                bgcolor: 'action.hover',
-                color: 'primary.main',
+                bgcolor: iconTint?.bg ?? 'rgba(56, 189, 248, 0.15)',
+                color: iconTint?.color ?? '#38bdf8',
               }}
             >
               {headerIcon}
@@ -134,12 +141,18 @@ export function InvestmentStatCard({
             component="p"
             variant={isProyeccion ? 'h5' : isHero ? 'h4' : 'h6'}
             fontWeight={800}
-            color={isProyeccion ? 'success.main' : toneColor[tone]}
+            color={
+              tone === 'negative'
+                ? 'error.main'
+                : tone === 'positive' && statKey === 'rendimiento'
+                  ? 'success.light'
+                  : '#ffffff'
+            }
             sx={{
               letterSpacing: '-0.02em',
               fontVariantNumeric: 'tabular-nums',
               lineHeight: 1.15,
-              ...(isProyeccion ? { fontSize: { xs: '1.35rem', sm: '1.5rem' } } : {}),
+              ...(isProyeccion ? { fontSize: { xs: '1.35rem', sm: '1.5rem' }, color: '#6ee7b7' } : {}),
             }}
           >
             {value}

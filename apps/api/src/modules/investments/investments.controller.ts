@@ -10,6 +10,7 @@ import { CurrentUser } from '@common/decorators/current-user.decorator';
 import type { InvestmentPortfolio, InvestmentPosition } from '@prisma/client';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { CreatePositionDto } from './dto/create-position.dto';
+import { RecordMarketValueDto } from './dto/record-market-value.dto';
 import {
   InvestmentsService,
   type InvestmentsOverviewResponse,
@@ -52,5 +53,22 @@ export class InvestmentsController {
     @Body() dto: CreatePositionDto,
   ): Promise<InvestmentPosition> {
     return this.investments.createPosition(portfolioId, userId, dto);
+  }
+
+  @Post('positions/:positionId/market-value')
+  recordMarketValue(
+    @CurrentUser('id') userId: string,
+    @Param('positionId', ParseUUIDPipe) positionId: string,
+    @Body() dto: RecordMarketValueDto,
+  ) {
+    return this.investments.recordMarketValue(userId, positionId, dto.marketValue);
+  }
+
+  @Get('positions/:positionId/value-history')
+  positionValueHistory(
+    @CurrentUser('id') userId: string,
+    @Param('positionId', ParseUUIDPipe) positionId: string,
+  ) {
+    return this.investments.listPositionValueHistory(userId, positionId);
   }
 }

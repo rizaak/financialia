@@ -236,14 +236,18 @@ export function AccountDetailPage() {
           if (params.row.rowVariant === 'adjustment') {
             return (
               <Stack direction="row" alignItems="center" spacing={0.75}>
-                <BuildOutlined sx={{ fontSize: 18, color: 'text.secondary' }} aria-hidden />
-                <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                <BuildOutlined sx={{ fontSize: 18, color: 'rgba(255,255,255,0.45)' }} aria-hidden />
+                <Typography variant="body2" fontWeight={600} sx={{ color: '#FFFFFF' }}>
                   Ajuste manual
                 </Typography>
               </Stack>
             );
           }
-          return <Typography variant="body2">{params.value}</Typography>;
+          return (
+            <Typography variant="body2" sx={{ color: '#FFFFFF' }}>
+              {params.value}
+            </Typography>
+          );
         },
       },
       { field: 'concepto', headerName: 'Concepto', flex: 1, minWidth: 220 },
@@ -255,17 +259,10 @@ export function AccountDetailPage() {
         renderCell: (params: GridRenderCellParams<MovementRow, number>) => {
           const v = params.value ?? 0;
           const adj = params.row.rowVariant === 'adjustment';
-          const color = adj
-            ? 'text.secondary'
-            : v > 0
-              ? 'success.main'
-              : v < 0
-                ? 'error.main'
-                : 'text.primary';
           const formatted = formatMoney(String(Math.abs(v)), params.row.moneda);
           const prefix = v < 0 ? '− ' : v > 0 ? '+ ' : '';
           return (
-            <Typography variant="body2" sx={{ fontWeight: adj ? 500 : 600, color }} component="span">
+            <Typography variant="body2" sx={{ fontWeight: adj ? 500 : 600, color: '#FFFFFF' }} component="span">
               {prefix}
               {formatted}
             </Typography>
@@ -314,8 +311,8 @@ export function AccountDetailPage() {
 
   const movementsGridSx = {
     '& .MuiDataGrid-row.row-adjustment': {
-      bgcolor: 'grey.100',
-      '&:hover': { bgcolor: 'grey.200' },
+      bgcolor: 'rgba(255, 255, 255, 0.06)',
+      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.09)' },
     },
   } as const;
 
@@ -423,6 +420,9 @@ export function AccountDetailPage() {
                 loading={loading}
                 getRowId={(r) => r.id}
                 getRowClassName={getMovementRowClassName}
+                columnHeaderHeight={44}
+                rowHeight={48}
+                disableColumnMenu
                 sx={movementsGridSx}
                 initialState={{
                   pagination: { paginationModel: { pageSize: 25, page: 0 } },
@@ -450,6 +450,9 @@ export function AccountDetailPage() {
             loading={loading}
             getRowId={(r) => r.id}
             getRowClassName={getMovementRowClassName}
+            columnHeaderHeight={44}
+            rowHeight={48}
+            disableColumnMenu
             sx={movementsGridSx}
             initialState={{
               pagination: { paginationModel: { pageSize: 25, page: 0 } },

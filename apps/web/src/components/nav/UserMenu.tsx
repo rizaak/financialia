@@ -35,7 +35,7 @@ export function UserMenu({ user, onLogout, dropUp, align = 'right', onNavigate }
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm ring-offset-2 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/10 shadow-sm ring-offset-2 ring-offset-[#020617] hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Menú de cuenta"
@@ -43,20 +43,20 @@ export function UserMenu({ user, onLogout, dropUp, align = 'right', onNavigate }
         {user?.picture ? (
           <img src={user.picture} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-sm font-semibold text-zinc-700">{initial}</span>
+          <span className="text-sm font-semibold text-zinc-200">{initial}</span>
         )}
       </button>
 
       {open ? (
         <div
-          className={`absolute z-50 w-52 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg ${
+          className={`absolute z-50 w-52 rounded-xl border border-white/10 bg-zinc-900/95 py-1 shadow-lg backdrop-blur-md ${
             dropUp ? 'bottom-full mb-2' : 'top-full mt-2'
           } ${align === 'left' ? 'left-0' : 'right-0'}`}
           role="menu"
         >
-          <div className="border-b border-zinc-100 px-3 py-2">
+          <div className="border-b border-white/10 px-3 py-2">
             <p className="truncate text-xs font-medium text-zinc-500">Sesión</p>
-            <p className="truncate text-sm font-semibold text-zinc-900">
+            <p className="truncate text-sm font-semibold text-zinc-100">
               {user?.name ?? user?.email ?? 'Usuario'}
             </p>
             {user?.email && user?.name ? (
@@ -66,7 +66,7 @@ export function UserMenu({ user, onLogout, dropUp, align = 'right', onNavigate }
           <Link
             to="/perfil"
             role="menuitem"
-            className="block px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+            className="block px-3 py-2 text-sm text-zinc-200 hover:bg-white/10"
             onClick={() => {
               setOpen(false);
               onNavigate?.();
@@ -77,7 +77,7 @@ export function UserMenu({ user, onLogout, dropUp, align = 'right', onNavigate }
           <Link
             to="/ajustes"
             role="menuitem"
-            className="block px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+            className="block px-3 py-2 text-sm text-zinc-200 hover:bg-white/10"
             onClick={() => {
               setOpen(false);
               onNavigate?.();
@@ -88,7 +88,7 @@ export function UserMenu({ user, onLogout, dropUp, align = 'right', onNavigate }
           <button
             type="button"
             role="menuitem"
-            className="w-full px-3 py-2 text-left text-sm text-rose-700 hover:bg-rose-50"
+            className="w-full px-3 py-2 text-left text-sm text-rose-400 hover:bg-rose-500/15"
             onClick={() => {
               setOpen(false);
               onNavigate?.();

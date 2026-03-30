@@ -51,6 +51,8 @@ export function mapOverviewToDashboardModel(overview: InvestmentsOverview): Inve
       const amount = Number(pos.initialAmount);
       const ret = Number(pos.expectedAnnualReturnPct);
       const growth = Number(pos.growthPctVsInitial);
+      const unrealized = pos.unrealizedPlPct != null ? Number(pos.unrealizedPlPct) : null;
+      const displayGrowth = unrealized != null && Number.isFinite(unrealized) ? unrealized : growth;
       weightedReturnNumerator += amount * ret;
       assets.push({
         id: pos.id,
@@ -59,8 +61,14 @@ export function mapOverviewToDashboardModel(overview: InvestmentsOverview): Inve
         amountInvested: amount,
         portfolioSharePct: 0,
         expectedAnnualReturnPct: ret * 100,
-        growthPctVsInitial: growth,
+        growthPctVsInitial: displayGrowth,
         category: inferPortfolioCategory(pos.label),
+        kind: pos.kind,
+        maturityDate: pos.maturityDate,
+        agreedAnnualRatePct:
+          pos.agreedAnnualRatePct != null ? Number(pos.agreedAnnualRatePct) : null,
+        marketValue: pos.marketValue != null ? Number(pos.marketValue) : null,
+        unrealizedPlPct: unrealized,
       });
     }
   }

@@ -121,7 +121,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           onClick={() => openTransactionDialog('expense')}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
-          <span className="mr-2 inline-flex text-emerald-700">
+          <span className="mr-2 inline-flex text-emerald-400">
             <TrendingDown size={18} />
           </span>
           Registrar gasto
@@ -130,7 +130,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           onClick={() => openTransactionDialog('income')}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
-          <span className="mr-2 inline-flex text-sky-700">
+          <span className="mr-2 inline-flex text-sky-400">
             <TrendingUp size={18} />
           </span>
           Ingresar dinero
@@ -148,7 +148,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           onClick={() => openMsiDialog()}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
-          <span className="mr-2 inline-flex text-amber-700">
+          <span className="mr-2 inline-flex text-amber-400">
             <CalendarClock size={18} />
           </span>
           Registrar MSI
@@ -157,7 +157,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           onClick={() => openSubscriptionDialog()}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
-          <span className="mr-2 inline-flex text-rose-700">
+          <span className="mr-2 inline-flex text-rose-400">
             <Repeat size={18} />
           </span>
           Nueva suscripción

@@ -13,10 +13,13 @@ type StatCardProps = {
 };
 
 const toneClass: Record<NonNullable<StatCardProps['tone']>, string> = {
-  default: 'text-zinc-900',
-  positive: 'text-emerald-600',
-  negative: 'text-rose-600',
+  default: 'text-white',
+  positive: 'text-emerald-400',
+  negative: 'text-rose-400',
 };
+
+const glassFrame =
+  'rounded-[20px] border border-white/10 bg-white/[0.03] p-5 shadow-none backdrop-blur-[12px]';
 
 /** KPI: importe centrado bajo la etiqueta (rejilla con `items-stretch` + `h-full`). */
 export function StatCard({
@@ -28,8 +31,8 @@ export function StatCard({
   compact = false,
 }: StatCardProps) {
   const labelClass = compact
-    ? 'shrink-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-500'
-    : 'shrink-0 text-xs font-medium uppercase tracking-wide text-zinc-500';
+    ? 'shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[#94a3b8]'
+    : 'shrink-0 text-xs font-medium uppercase tracking-wide text-[#94a3b8]';
   const valueClass = compact
     ? `text-center text-2xl font-extrabold tabular-nums leading-tight ${toneClass[tone]}`
     : `text-center text-2xl font-semibold tabular-nums leading-tight ${toneClass[tone]}`;
@@ -42,7 +45,7 @@ export function StatCard({
           <MoneyText>{value}</MoneyText>
         </p>
       </div>
-      {hint ? <p className="mt-auto shrink-0 pt-1 text-center text-xs text-zinc-400">{hint}</p> : null}
+      {hint ? <p className="mt-auto shrink-0 pt-1 text-center text-xs text-[#94a3b8]">{hint}</p> : null}
     </>
   );
 
@@ -57,9 +60,11 @@ export function StatCard({
           p: 2.5,
           border: 2,
           borderColor: 'primary.main',
-          borderRadius: 2,
-          bgcolor: 'grey.50',
-          boxShadow: '0 2px 10px rgba(15, 23, 42, 0.07)',
+          borderRadius: '20px',
+          bgcolor: 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: 'none',
         }}
       >
         {inner}
@@ -68,7 +73,7 @@ export function StatCard({
   }
 
   return (
-    <div className="flex h-full min-h-[132px] flex-col rounded-xl border border-zinc-200/80 bg-white p-5 shadow-[0_2px_10px_-2px_rgba(15,23,42,0.07)]">
+    <div className={`flex h-full min-h-[132px] flex-col ${glassFrame}`}>
       {inner}
     </div>
   );
