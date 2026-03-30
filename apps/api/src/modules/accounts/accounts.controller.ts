@@ -5,6 +5,8 @@ import { CreditCardStatementService } from './credit-card-statement.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { CreateInstallmentPlanDto } from './dto/create-installment-plan.dto';
 import { SyncBalanceDto } from './dto/sync-balance.dto';
+import { MoveToCajitaDto } from './dto/move-to-cajita.dto';
+import { PatchYieldAccountDto } from './dto/patch-yield-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { UpdateCreditCardAccountDto } from './dto/update-credit-card-account.dto';
 import { InstallmentPlansService } from './installment-plans.service';
@@ -51,6 +53,24 @@ export class AccountsController {
     @Body() dto: UpdateAccountDto,
   ) {
     return this.accounts.updateStatus(userId, accountId, dto.status);
+  }
+
+  @Patch(':accountId/yield')
+  patchYieldAccount(
+    @CurrentUser('id') userId: string,
+    @Param('accountId') accountId: string,
+    @Body() dto: PatchYieldAccountDto,
+  ) {
+    return this.accounts.patchYieldAccount(userId, accountId, dto.yieldStrategyId);
+  }
+
+  @Post(':accountId/move-to-cajita')
+  moveToCajita(
+    @CurrentUser('id') userId: string,
+    @Param('accountId') accountId: string,
+    @Body() dto: MoveToCajitaDto,
+  ) {
+    return this.accounts.moveToCajita(userId, accountId, dto.amount);
   }
 
   @Post(':accountId/reconcile')

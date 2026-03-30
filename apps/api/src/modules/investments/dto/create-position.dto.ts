@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+import { InvestmentPositionKind } from '@prisma/client';
 
 export class CreatePositionDto {
   @IsString()
@@ -17,6 +18,27 @@ export class CreatePositionDto {
   @Min(-0.9999)
   @Max(10)
   expectedAnnualReturnPct!: number;
+
+  @IsOptional()
+  @IsEnum(InvestmentPositionKind)
+  kind?: InvestmentPositionKind;
+
+  @IsOptional()
+  @IsDateString()
+  maturityDate?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 6 })
+  @Min(0)
+  @Max(10)
+  agreedAnnualRatePct?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  marketValue?: number;
 
   @IsOptional()
   @IsString()

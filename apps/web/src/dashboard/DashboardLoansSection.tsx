@@ -39,18 +39,20 @@ function LoanCard({
       id: 1,
       value: Math.max(0, remaining),
       label: 'Capital pendiente',
-      color: theme.palette.grey[300],
+      color: theme.palette.grey[600],
     },
   ].filter((d) => d.value > 0);
 
   return (
     <Box
       sx={{
-        borderRadius: 2,
+        borderRadius: '20px',
         border: 1,
         borderColor: 'divider',
         p: 2,
-        bgcolor: 'background.paper',
+        bgcolor: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1} flexWrap="wrap">

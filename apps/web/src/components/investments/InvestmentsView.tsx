@@ -9,6 +9,7 @@ import { formatMoney } from '../../lib/formatMoney';
 import type { TieredDashboardApi } from '../../types/investmentsSummary';
 import { NewInvestmentDialog } from './NewInvestmentDialog';
 import { TieredInvestmentCard } from './TieredInvestmentCard';
+import { YieldSavingsAccountCard } from './YieldSavingsAccountCard';
 
 type Props = {
   getAccessToken: () => Promise<string>;
@@ -25,12 +26,13 @@ function TieredSummaryStrip({ data, currencyCode }: { data: TieredDashboardApi; 
       direction={{ xs: 'column', sm: 'row' }}
       spacing={2}
       sx={{
-        borderRadius: '16px',
-        border: '1px solid',
-        borderColor: 'divider',
+        borderRadius: '12px',
+        border: '1px solid rgba(255,255,255,0.1)',
         p: 2.5,
-        bgcolor: 'background.paper',
-        boxShadow: '0 2px 16px -4px rgba(15, 23, 42, 0.07), 0 4px 24px -8px rgba(15, 23, 42, 0.06)',
+        bgcolor: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: 'none',
       }}
     >
       <Box flex={1}>
@@ -43,17 +45,17 @@ function TieredSummaryStrip({ data, currencyCode }: { data: TieredDashboardApi; 
               width: 32,
               height: 32,
               borderRadius: 1.5,
-              bgcolor: 'action.hover',
-              color: 'primary.main',
+              bgcolor: 'rgba(56, 189, 248, 0.15)',
+              color: '#38bdf8',
             }}
           >
             <AccountBalanceOutlined sx={{ fontSize: 18 }} />
           </Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={700}>
+          <Typography variant="caption" fontWeight={700} sx={{ color: '#94a3b8' }}>
             Saldo líquido (referencia)
           </Typography>
         </Stack>
-        <Typography variant="h6" fontWeight={800} sx={summaryMoneySx}>
+        <Typography variant="h6" fontWeight={800} sx={{ ...summaryMoneySx, color: '#ffffff' }}>
           {formatMoney(data.netLiquidBalance, currencyCode)}
         </Typography>
       </Box>
@@ -67,17 +69,17 @@ function TieredSummaryStrip({ data, currencyCode }: { data: TieredDashboardApi; 
               width: 32,
               height: 32,
               borderRadius: 1.5,
-              bgcolor: 'action.hover',
-              color: 'primary.main',
+              bgcolor: 'rgba(52, 211, 153, 0.14)',
+              color: '#34d399',
             }}
           >
             <PercentOutlined sx={{ fontSize: 18 }} />
           </Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={700}>
+          <Typography variant="caption" fontWeight={700} sx={{ color: '#94a3b8' }}>
             APY ponderado (portafolio a tramos)
           </Typography>
         </Stack>
-        <Typography variant="h6" fontWeight={800} color="success.main" sx={summaryMoneySx}>
+        <Typography variant="h6" fontWeight={800} sx={{ ...summaryMoneySx, color: '#ffffff' }}>
           {Number.isFinite(blended) ? `${blended.toFixed(2)}%` : '—'}
         </Typography>
       </Box>
@@ -91,17 +93,17 @@ function TieredSummaryStrip({ data, currencyCode }: { data: TieredDashboardApi; 
               width: 32,
               height: 32,
               borderRadius: 1.5,
-              bgcolor: 'action.hover',
-              color: 'primary.main',
+              bgcolor: 'rgba(167, 139, 250, 0.16)',
+              color: '#a78bfa',
             }}
           >
             <TodayOutlined sx={{ fontSize: 18 }} />
           </Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={700}>
+          <Typography variant="caption" fontWeight={700} sx={{ color: '#94a3b8' }}>
             Ganancia diaria estimada (24 h)
           </Typography>
         </Stack>
-        <Typography variant="h6" fontWeight={800} sx={summaryMoneySx}>
+        <Typography variant="h6" fontWeight={800} sx={{ ...summaryMoneySx, color: '#ffffff' }}>
           {Number.isFinite(daily) ? formatMoney(String(daily), currencyCode) : '—'}
         </Typography>
       </Box>
@@ -126,7 +128,7 @@ export function InvestmentsView({ getAccessToken, defaultCurrency }: Props) {
             Portafolio de Inversiones
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Tramos de interés dinámicos, APY promedio y validación de saldo en la cuenta origen.
+            Inversiones por tramos, cuentas con cajita (Sofipo/banco) y portafolios clásicos.
           </Typography>
         </Box>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}>
@@ -157,7 +159,30 @@ export function InvestmentsView({ getAccessToken, defaultCurrency }: Props) {
       ) : data ? (
         <>
           <TieredSummaryStrip data={data} currencyCode={defaultCurrency} />
+          {(data.yieldSavingsAccounts?.length ?? 0) > 0 ? (
+            <Stack spacing={2} sx={{ mt: { xs: 3, md: 4 } }}>
+              <Typography variant="h6" fontWeight={800} color="text.primary">
+                Cuentas con rendimiento (Sofipos / bancos)
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Saldo disponible vs cajita. Los tramos de interés se calculan solo sobre la cajita. Vincula una estrategia
+                a tu cuenta bancaria (API PATCH /accounts/:id/yield) si aún no aparece aquí.
+              </Typography>
+              {data.yieldSavingsAccounts!.map((row) => (
+                <YieldSavingsAccountCard
+                  key={row.accountId}
+                  row={row}
+                  currencyCode={defaultCurrency}
+                  getAccessToken={getAccessToken}
+                  onChanged={() => void refetch()}
+                />
+              ))}
+            </Stack>
+          ) : null}
           <Stack spacing={2} sx={{ mt: { xs: 3, md: 5 } }}>
+            <Typography variant="subtitle1" fontWeight={800} color="text.primary">
+              Inversiones por tramos (producto dedicado)
+            </Typography>
             {data.investments.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 Aún no tienes inversiones por tramos. Pulsa &quot;Nueva Inversión&quot; para crear la primera.

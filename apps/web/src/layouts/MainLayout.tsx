@@ -24,6 +24,8 @@ import { SIDEBAR_NAV_ITEMS } from '../components/nav/sidebarNavConfig';
 import { FinancialChatDrawerTrigger } from '../components/shell/FinancialChatDrawerTrigger';
 import { SmartCommandBar } from '../components/shell/SmartCommandBar';
 import { ShellQuickActionsFab } from '../components/shell/ShellQuickActionsFab';
+import { VanAssistant } from '../components/shell/VanAssistant';
+import { useVanSidebarStatus } from '../hooks/useVanSidebarStatus';
 import { normalizeDisplayCurrency, type DisplayCurrency } from '../lib/displayCurrency';
 import { useFinanceStore } from '../stores/financeStore';
 import { usePrivacyStore } from '../stores/privacyStore';
@@ -119,6 +121,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
 
   const drawerWidth = isMdUp ? (mini ? DRAWER_MINI : DRAWER_FULL) : DRAWER_FULL;
   const narrow = isMdUp && mini;
+  const vanSidebarStatus = useVanSidebarStatus();
 
   function renderDrawerContent(showMini: boolean) {
     return (
@@ -127,13 +130,22 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
           items={SIDEBAR_NAV_ITEMS}
           showMini={showMini}
           onNavigate={() => setMobileOpen(false)}
+          vanStatus={vanSidebarStatus}
         />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        bgcolor: 'transparent',
+        background: 'radial-gradient(at top left, #0f172a, #020617)',
+        backgroundAttachment: 'fixed',
+      }}
+    >
       <AppBar
         position="fixed"
         elevation={0}
@@ -296,6 +308,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
         }}
       >
         <Toolbar sx={{ minHeight: { xs: 128, md: 64 } }} />
+        <VanAssistant />
         <div className="grid w-full max-w-full grid-cols-12 gap-4 sm:gap-6">
           <div className="col-span-12 min-w-0">
             {configHint}
@@ -310,7 +323,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
             pb: 2,
             textAlign: 'center',
             borderTop: 1,
-            borderColor: 'divider',
+            borderColor: 'rgba(255,255,255,0.1)',
           }}
         >
           <Typography variant="caption" color="text.secondary">

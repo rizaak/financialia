@@ -63,6 +63,19 @@ function accountHasNonZeroBalance(a: AccountRow): boolean {
   return Number.isFinite(n) && Math.abs(n) > 1e-9;
 }
 
+const cashAccountsThSx = {
+  py: 1.25,
+  pr: 2,
+  fontSize: '0.8125rem',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: '#94a3b8',
+  backgroundColor: 'transparent',
+  verticalAlign: 'middle',
+  lineHeight: 1.25,
+} as const;
+
 export function AccountsPage() {
   const navigate = useNavigate();
   const { getAccessToken, defaultCurrency, notifyTransactionSaved } = useOutletContext<ShellOutletContext>();
@@ -150,13 +163,13 @@ export function AccountsPage() {
   }, [closeArchiveDialogs, navigate]);
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-8 mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-emerald-700">Patrimonio</p>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Mis cuentas</h1>
-            <p className="mt-1 text-sm text-zinc-500">Saldos y totales en {cur} (estado global sincronizado).</p>
+            <p className="text-sm font-medium text-emerald-400">Patrimonio</p>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-100 sm:text-3xl">Mis cuentas</h1>
+            <p className="mt-1 text-sm font-normal text-zinc-400">Saldos y totales en {cur} (estado global sincronizado).</p>
           </div>
           <Stack direction="row" spacing={1} alignItems="center" className="self-start">
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => setNewAccountOpen(true)}>
@@ -242,9 +255,11 @@ export function AccountsPage() {
                     <Box
                       key={a.id}
                       sx={{
-                        bgcolor: 'background.paper',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: 2,
+                        bgcolor: 'rgba(255,255,255,0.03)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '20px',
                         p: 2,
                       }}
                     >
@@ -402,27 +417,56 @@ export function AccountsPage() {
           ) : null}
 
           <SectionCard title="Cuentas (efectivo y depósitos)">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[320px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-200 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    <th className="pb-2 pr-4">Nombre</th>
-                    <th className="pb-2 pr-4">Tipo</th>
-                    <th className="pb-2 pr-4">Moneda</th>
-                    <th className="pb-2 pr-3 text-right tabular-nums">Saldo</th>
-                    <th className="pb-2 text-right" aria-label="Acciones" />
-                  </tr>
-                </thead>
-                <tbody>
+            <Box
+              sx={{
+                overflowX: 'auto',
+                background: 'transparent !important',
+                backgroundImage: 'none !important',
+                boxShadow: 'none',
+              }}
+            >
+              <Box component="table" sx={{ width: '100%', minWidth: 320, textAlign: 'left', borderCollapse: 'collapse' }}>
+                <Box component="thead">
+                  <Box
+                    component="tr"
+                    sx={{
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    }}
+                  >
+                    <Box component="th" sx={cashAccountsThSx}>
+                      Nombre
+                    </Box>
+                    <Box component="th" sx={cashAccountsThSx}>
+                      Tipo
+                    </Box>
+                    <Box component="th" sx={cashAccountsThSx}>
+                      Moneda
+                    </Box>
+                    <Box
+                      component="th"
+                      sx={{
+                        ...cashAccountsThSx,
+                        pr: 1.5,
+                        textAlign: 'right',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      Saldo
+                    </Box>
+                    <Box component="th" sx={{ ...cashAccountsThSx, textAlign: 'right' }} aria-label="Acciones" />
+                  </Box>
+                </Box>
+                <Box component="tbody">
                   {otherAccounts.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-4 text-zinc-500">
+                    <Box component="tr">
+                      <Box component="td" colSpan={5} sx={{ py: 2, color: '#94a3b8' }}>
                         No hay cuentas en esta categoría.
-                      </td>
-                    </tr>
+                      </Box>
+                    </Box>
                   ) : (
                     otherAccounts.map((a) => (
-                      <tr
+                      <Box
+                        component="tr"
                         key={a.id}
                         role="button"
                         tabIndex={0}
@@ -433,15 +477,40 @@ export function AccountsPage() {
                             navigate(`/cuentas/${a.id}`);
                           }
                         }}
-                        className="cursor-pointer border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/90"
+                        sx={{
+                          cursor: 'pointer',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                          transition: 'background-color 0.2s ease',
+                          '&:last-of-type': { borderBottom: 'none' },
+                          '&:hover': {
+                            backgroundColor: 'rgba(59, 130, 246, 0.1) !important',
+                          },
+                        }}
                       >
-                        <td className="py-2.5 pr-4 font-medium text-zinc-900">{a.name}</td>
-                        <td className="py-2.5 pr-4 text-zinc-600">{accountTypeLabel(a.type)}</td>
-                        <td className="py-2.5 pr-4 text-zinc-600">{a.currency}</td>
-                        <td className="py-2.5 pr-3 text-right tabular-nums tracking-tight text-zinc-900">
+                        <Box component="td" sx={{ py: 1.25, pr: 2, fontWeight: 500, color: '#FFFFFF' }}>
+                          {a.name}
+                        </Box>
+                        <Box component="td" sx={{ py: 1.25, pr: 2, color: '#FFFFFF' }}>
+                          {accountTypeLabel(a.type)}
+                        </Box>
+                        <Box component="td" sx={{ py: 1.25, pr: 2, color: '#FFFFFF' }}>
+                          {a.currency}
+                        </Box>
+                        <Box
+                          component="td"
+                          sx={{
+                            py: 1.25,
+                            pr: 1.5,
+                            textAlign: 'right',
+                            fontVariantNumeric: 'tabular-nums',
+                            letterSpacing: '-0.02em',
+                            color: '#FFFFFF',
+                            fontWeight: 600,
+                          }}
+                        >
                           {formatMoney(a.balance, a.currency)}
-                        </td>
-                        <td className="py-2.5 text-right">
+                        </Box>
+                        <Box component="td" sx={{ py: 1.25, textAlign: 'right' }}>
                           <Stack direction="row" spacing={0} justifyContent="flex-end" alignItems="center">
                             <Tooltip title="Ajustar saldo">
                               <IconButton
@@ -468,13 +537,13 @@ export function AccountsPage() {
                               </IconButton>
                             </Tooltip>
                           </Stack>
-                        </td>
-                      </tr>
+                        </Box>
+                      </Box>
                     ))
                   )}
-                </tbody>
-              </table>
-            </div>
+                </Box>
+              </Box>
+            </Box>
           </SectionCard>
 
           <Typography variant="body2" color="text.secondary" className="text-center sm:text-left">

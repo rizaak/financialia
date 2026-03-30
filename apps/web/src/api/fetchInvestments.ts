@@ -33,7 +33,11 @@ export async function fetchTieredDashboard(
 ): Promise<TieredDashboardApi> {
   const res = await jsonAuthFetch(getAccessToken, '/investments/tiered/dashboard');
   await assertOk(res);
-  return res.json() as Promise<TieredDashboardApi>;
+  const data = (await res.json()) as TieredDashboardApi;
+  return {
+    ...data,
+    yieldSavingsAccounts: data.yieldSavingsAccounts ?? [],
+  };
 }
 
 export type CreateTieredInvestmentWithStrategyBody = {
@@ -93,6 +97,10 @@ export type CreatePositionBody = {
   initialAmount: number;
   expectedAnnualReturnPct: number;
   notes?: string;
+  kind?: 'VARIABLE' | 'FIXED_TERM';
+  maturityDate?: string;
+  agreedAnnualRatePct?: number;
+  marketValue?: number;
 };
 
 export async function createPosition(
@@ -192,4 +200,39 @@ export async function createTieredHolding(
   });
   await assertOk(res);
   return res.json();
+}
+
+export async function recordPositionMarketValue(
+  getAccessToken: () => Promise<string>,
+  positionId: string,
+  marketValue: number,
+): Promise<{ id: string }> {
+  const res = await jsonAuthFetch(
+    getAccessToken,
+    `/investments/positions/${encodeURIComponent(positionId)}/market-value`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ marketValue }),
+    },
+  );
+  await assertOk(res);
+  return res.json() as Promise<{ id: string }>;
+}
+
+export type PositionValueSnapshotRow = {
+  id: string;
+  recordedAt: string;
+  marketValue: string;
+};
+
+export async function fetchPositionValueHistory(
+  getAccessToken: () => Promise<string>,
+  positionId: string,
+): Promise<PositionValueSnapshotRow[]> {
+  const res = await jsonAuthFetch(
+    getAccessToken,
+    `/investments/positions/${encodeURIComponent(positionId)}/value-history`,
+  );
+  await assertOk(res);
+  return res.json() as Promise<PositionValueSnapshotRow[]>;
 }

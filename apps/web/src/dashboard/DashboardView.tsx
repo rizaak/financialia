@@ -110,8 +110,9 @@ export function DashboardView({
                 alignSelf: { xs: 'flex-end', sm: 'auto' },
                 border: 1,
                 borderColor: 'divider',
-                bgcolor: 'background.paper',
-                '&:hover': { bgcolor: 'action.hover' },
+                bgcolor: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(8px)',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
               }}
             >
               {refreshing ? <CircularProgress size={22} color="inherit" /> : <RefreshIcon />}

@@ -9,31 +9,31 @@ type Props = {
 export function AssetTable({ assets, formatCurrency, currencyCode }: Props) {
   if (assets.length === 0) {
     return (
-      <p className="py-10 text-center text-sm text-zinc-500">No hay activos en tus portafolios.</p>
+      <p className="py-10 text-center text-sm text-[#94a3b8]">No hay activos en tus portafolios.</p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-200/80">
+    <div className="overflow-x-auto rounded-[12px] border border-white/10 bg-transparent backdrop-blur-[10px]">
       <table className="w-full min-w-[520px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-zinc-200 bg-zinc-50/80">
-            <th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold text-zinc-700">
+          <tr className="border-b border-white/10 bg-[rgba(255,255,255,0.02)]">
+            <th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold text-[#94a3b8]">
               Activo
             </th>
-            <th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold text-zinc-700">
+            <th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold text-[#94a3b8]">
               Portafolio
             </th>
-            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-zinc-700">
+            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-[#94a3b8]">
               Invertido
             </th>
-            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-zinc-700">
+            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-[#94a3b8]">
               % del total
             </th>
-            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-zinc-700">
+            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-[#94a3b8]">
               Rend. anual (est.)
             </th>
-            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-zinc-700">
+            <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-semibold text-[#94a3b8]">
               Δ 1 año (est.)
             </th>
           </tr>
@@ -44,22 +44,22 @@ export function AssetTable({ assets, formatCurrency, currencyCode }: Props) {
             return (
               <tr
                 key={a.id}
-                className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50"
+                className="border-b border-white/[0.06] bg-transparent transition-colors last:border-0 hover:bg-white/[0.05]"
               >
-                <td className="px-4 py-3 font-medium text-zinc-900">{a.name}</td>
-                <td className="px-4 py-3 text-zinc-600">{a.portfolioName}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-zinc-800">
+                <td className="px-4 py-3 font-medium text-white">{a.name}</td>
+                <td className="px-4 py-3 text-[#94a3b8]">{a.portfolioName}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-white">
                   {formatCurrency(a.amountInvested, currencyCode)}
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums text-zinc-600">
+                <td className="px-4 py-3 text-right tabular-nums text-[#94a3b8]">
                   {a.portfolioSharePct.toFixed(2)}%
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums text-zinc-600">
+                <td className="px-4 py-3 text-right tabular-nums text-white">
                   {a.expectedAnnualReturnPct.toFixed(2)}%
                 </td>
                 <td
                   className={`px-4 py-3 text-right tabular-nums font-medium ${
-                    growthPositive ? 'text-emerald-700' : 'text-rose-700'
+                    growthPositive ? 'text-emerald-300' : 'text-rose-300'
                   }`}
                 >
                   {growthPositive ? '+' : ''}
@@ -70,7 +70,7 @@ export function AssetTable({ assets, formatCurrency, currencyCode }: Props) {
           })}
         </tbody>
       </table>
-      <p className="border-t border-zinc-100 bg-zinc-50/50 px-4 py-2 text-xs text-zinc-500">
+      <p className="border-t border-white/10 bg-transparent px-4 py-2 text-xs text-[#94a3b8] backdrop-blur-[10px]">
         Porcentaje sobre el total invertido en el portafolio.
       </p>
     </div>

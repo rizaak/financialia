@@ -25,12 +25,29 @@ export type TieredInvestmentRowApi = {
   tierSegments: TierSegmentApi[];
 };
 
+export type YieldSavingsAccountRowApi = {
+  accountId: string;
+  name: string;
+  balance: string;
+  investedBalance: string;
+  availableBalance: string;
+  currency: string;
+  effectiveAnnualPct: string;
+  dailyEstimatedEarnings: string;
+  tierProgressMessage: string;
+  tierProgress01: number;
+  currentTierSortOrder: number | null;
+  tierSegments: TierSegmentApi[];
+};
+
 export type TieredDashboardApi = {
   netLiquidBalance: string;
   totalInvestedTiered: string;
   portfolioBlendedAnnualPct: string;
   projectedEarningsNext24h: string;
   investments: TieredInvestmentRowApi[];
+  /** Sofipos/bancos: interés solo sobre saldo en cajita. */
+  yieldSavingsAccounts: YieldSavingsAccountRowApi[];
 };
 
 export type InvestmentsSummaryApi = {

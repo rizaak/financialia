@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppToaster } from './components/AppToaster';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -11,20 +11,22 @@ import { AccountsPage } from './pages/AccountsPage';
 import { CommitmentsPage } from './pages/CommitmentsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
+import { LandingEntry } from './pages/LandingEntry';
+import { LoginRedirectPage } from './pages/LoginRedirectPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
+import { RegisterRedirectPage } from './pages/RegisterRedirectPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { isAuth0Configured } from './lib/auth0Configured';
+import { ProtectedOutlet } from './routes/ProtectedOutlet';
 
-/** Alineación con React Router v7; reduce avisos de future flags en consola. */
 const routerFutureFlags = {
   v7_startTransition: true,
   v7_relativeSplatPath: true,
 } as const;
 
-function Auth0Dashboard() {
-  const { isLoading, isAuthenticated, loginWithRedirect, logout, user, getAccessTokenSilently } =
-    useAuth0();
+function Auth0MainShell() {
+  const { getAccessTokenSilently, logout, user } = useAuth0();
   const audience = import.meta.env.VITE_AUTH0_AUDIENCE?.trim() ?? '';
 
   const getAccessToken = useCallback(async () => {
@@ -56,91 +58,61 @@ function Auth0Dashboard() {
     [user],
   );
 
-  useEffect(() => {
-    if (isLoading || isAuthenticated) return;
-    void loginWithRedirect();
-  }, [isLoading, isAuthenticated, loginWithRedirect]);
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
-        {isLoading ? 'Cargando sesión…' : 'Redirigiendo al inicio de sesión…'}
-      </div>
-    );
-  }
-
   return (
-    <BrowserRouter future={routerFutureFlags}>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <MainLayout
-              getAccessToken={getAccessToken}
-              user={shellUser}
-              onLogout={() =>
-                void logout({ logoutParams: { returnTo: window.location.origin } })
-              }
-            />
-          }
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="registro" element={<RegisterPage />} />
-          <Route path="cuentas/:accountId" element={<AccountDetailPage />} />
-          <Route path="cuentas" element={<AccountsPage />} />
-          <Route path="compromisos" element={<CommitmentsPage />} />
-          <Route path="inversiones" element={<InvestmentsPage />} />
-          <Route path="perfil" element={<ProfilePage />} />
-          <Route path="ajustes" element={<SettingsPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <MainLayout
+      getAccessToken={getAccessToken}
+      user={shellUser}
+      onLogout={() => void logout({ logoutParams: { returnTo: window.location.origin } })}
+    />
   );
 }
 
-function DevTokenDashboard() {
+function DevMainShell() {
   const hasToken = Boolean(import.meta.env.VITE_DEV_ACCESS_TOKEN?.trim());
-
   const getAccessToken = useCallback(async () => {
     return import.meta.env.VITE_DEV_ACCESS_TOKEN?.trim() ?? '';
   }, []);
 
   const configHint = !hasToken ? (
-    <div className="mb-8 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+    <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300 backdrop-blur-[10px]">
       Falta la configuración de acceso para este entorno. Revisa la documentación del proyecto o contacta al
       administrador.
     </div>
   ) : undefined;
 
   return (
+    <MainLayout
+      getAccessToken={getAccessToken}
+      configHint={configHint}
+      user={{ name: 'Modo pruebas', email: 'entorno local' }}
+      onLogout={() => {
+        window.location.reload();
+      }}
+    />
+  );
+}
+
+function AppRoutes() {
+  const Shell = isAuth0Configured() ? Auth0MainShell : DevMainShell;
+  return (
     <BrowserRouter future={routerFutureFlags}>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <MainLayout
-              getAccessToken={getAccessToken}
-              configHint={configHint}
-              user={{ name: 'Modo pruebas', email: 'entorno local' }}
-              onLogout={() => {
-                window.location.reload();
-              }}
-            />
-          }
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="registro" element={<RegisterPage />} />
-          <Route path="cuentas/:accountId" element={<AccountDetailPage />} />
-          <Route path="cuentas" element={<AccountsPage />} />
-          <Route path="compromisos" element={<CommitmentsPage />} />
-          <Route path="inversiones" element={<InvestmentsPage />} />
-          <Route path="perfil" element={<ProfilePage />} />
-          <Route path="ajustes" element={<SettingsPage />} />
+        <Route path="/" element={<LandingEntry />} />
+        <Route path="/login" element={<LoginRedirectPage />} />
+        <Route path="/register" element={<RegisterRedirectPage />} />
+        <Route element={<ProtectedOutlet />}>
+          <Route element={<Shell />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="registro" element={<RegisterPage />} />
+            <Route path="cuentas/:accountId" element={<AccountDetailPage />} />
+            <Route path="cuentas" element={<AccountsPage />} />
+            <Route path="compromisos" element={<CommitmentsPage />} />
+            <Route path="inversiones" element={<InvestmentsPage />} />
+            <Route path="perfil" element={<ProfilePage />} />
+            <Route path="ajustes" element={<SettingsPage />} />
+          </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
@@ -151,7 +123,7 @@ export default function App() {
     <ErrorBoundary>
       <AppProviders>
         <AppToaster />
-        {isAuth0Configured() ? <Auth0Dashboard /> : <DevTokenDashboard />}
+        <AppRoutes />
       </AppProviders>
     </ErrorBoundary>
   );

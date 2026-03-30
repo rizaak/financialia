@@ -20,11 +20,16 @@ export function InvestmentsSection({
   const hasPortfolios = data.portfolios.length > 0;
 
   return (
-    <div className="space-y-8">
-      <InvestmentDashboard overview={data} currencyCode={currencyCode} />
+    <div className="space-y-8 bg-transparent">
+      <InvestmentDashboard
+        overview={data}
+        currencyCode={currencyCode}
+        getAccessToken={getAccessToken}
+        onSaved={onSaved}
+      />
 
       <SectionCard title="Gestionar portafolios">
-        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="grid gap-4 bg-transparent lg:grid-cols-2 lg:items-start">
           <CreatePortfolioForm getAccessToken={getAccessToken} onSaved={onSaved} />
           <CreatePositionForm
             portfolios={data.portfolios}
@@ -33,7 +38,7 @@ export function InvestmentsSection({
           />
         </div>
         {!hasPortfolios ? (
-          <p className="mt-4 text-sm text-zinc-600">
+          <p className="mt-4 text-sm text-[#94a3b8]">
             Crea un portafolio y añade posiciones para ver el resumen aquí.
           </p>
         ) : null}

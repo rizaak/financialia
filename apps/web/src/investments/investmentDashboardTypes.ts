@@ -25,6 +25,12 @@ export type InvestmentAsset = {
   /** Crecimiento proyectado a 1 año vs monto inicial (API). */
   growthPctVsInitial: number;
   category: PortfolioCategoryId;
+  kind: 'VARIABLE' | 'FIXED_TERM';
+  maturityDate: string | null;
+  /** Tasa pactada en decimal (ej. 0.105). */
+  agreedAnnualRatePct: number | null;
+  marketValue: number | null;
+  unrealizedPlPct: number | null;
 };
 
 /** Punto temporal para el área de crecimiento. */
@@ -41,6 +47,8 @@ export type DonutSegment = {
   value: number;
   pct: number;
   color: string;
+  /** Meta de asignación cumplida (actual ≥ objetivo %). */
+  funded?: boolean;
 };
 
 export type InvestmentDashboardModel = {

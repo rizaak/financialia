@@ -1,4 +1,4 @@
-import { Box, LinearProgress, Stack, Typography, useTheme } from '@mui/material';
+import { Box, LinearProgress, Stack, Typography } from '@mui/material';
 import {
   DEMO_TIER_STRATEGY,
   getActiveTierIndex,
@@ -24,8 +24,21 @@ export type TierInterestProgressBarProps = {
 
 const SEGMENT_PALETTE = ['#f87171', '#fbbf24', '#4ade80', '#60a5fa', '#a78bfa', '#94a3b8'];
 
+function dominantSegmentIndex(segments: TierSegmentUi[]): number {
+  if (segments.length === 0) return 0;
+  let best = 0;
+  let max = -1;
+  segments.forEach((s, i) => {
+    if (s.fractionOfPrincipal > max) {
+      max = s.fractionOfPrincipal;
+      best = i;
+    }
+  });
+  return best;
+}
+
 /**
- * Barra segmentada: con `segments` del API muestra proporción real por tramo; si no, demo por tramos iguales.
+ * Barra única minimalista + indicador «Tramo actual» (brillo solo con capital en tramos).
  */
 export function TierInterestProgressBar({
   principal,
@@ -34,104 +47,142 @@ export function TierInterestProgressBar({
   tierProgressWithin,
   title = 'Tramos de interés',
 }: TierInterestProgressBarProps) {
-  const theme = useTheme();
   const active = getActiveTierIndex(principal, tiers);
-  const segmentColors = ['#f87171', '#fbbf24', theme.palette.grey[400]];
+  const segmentColors = ['#f87171', '#fbbf24', 'rgba(148, 163, 184, 0.55)'];
   const useApiSegments = Boolean(segments && segments.length > 0);
+  const capitalWorking = principal > 0;
+
+  const domIdx = useApiSegments ? dominantSegmentIndex(segments!) : active;
+  const currentRateLabel = useApiSegments
+    ? `${segments![domIdx]?.annualRatePct ?? '—'}% nominal`
+    : `${tiers[active]?.ratePct ?? 0}%`;
+
+  const cupoPct =
+    tierProgressWithin != null && Number.isFinite(tierProgressWithin)
+      ? Math.min(100, Math.max(0, tierProgressWithin * 100))
+      : null;
 
   return (
-    <Stack spacing={1.5} sx={{ width: '100%' }}>
-      <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-        {title}
-      </Typography>
-      <Box
-        sx={{
-          display: 'flex',
-          height: 12,
-          borderRadius: '999px',
-          overflow: 'hidden',
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        {useApiSegments
-          ? segments!.map((s, i) => (
-              <Box
-                key={`${s.sortOrder}-${i}`}
-                sx={{
-                  width: `${Math.max(0, Math.min(1, s.fractionOfPrincipal)) * 100}%`,
-                  minWidth: s.fractionOfPrincipal > 0.02 ? 4 : 0,
-                  bgcolor: SEGMENT_PALETTE[i % SEGMENT_PALETTE.length],
-                  transition: 'width 0.2s',
-                }}
-                title={`${s.annualRatePct}% nominal · ${(s.fractionOfPrincipal * 100).toFixed(1)}% del capital`}
-              />
-            ))
-          : tiers.map((t, i) => (
-              <Box
-                key={t.id}
-                sx={{
-                  flex: 1,
-                  bgcolor: segmentColors[i % segmentColors.length],
-                  opacity: i === active ? 1 : 0.4,
-                  transition: 'opacity 0.2s',
-                }}
-                title={`${t.ratePct}%`}
-              />
-            ))}
-      </Box>
-      {useApiSegments ? (
-        <Stack direction="row" flexWrap="wrap" gap={2} useFlexGap>
-          {segments!.map((s, i) => (
-            <Typography key={`${s.sortOrder}-${i}`} variant="caption" color="text.secondary" fontWeight={600}>
-              {s.sortOrder >= 9000 ? 'Remanente' : `Tramo ${s.sortOrder + 1}`}: {s.annualRatePct}% ·{' '}
-              {(s.fractionOfPrincipal * 100).toFixed(1)}% cap.
-            </Typography>
-          ))}
-        </Stack>
-      ) : (
-        <Stack direction="row" flexWrap="wrap" gap={2} useFlexGap>
-          {tiers.map((t, i) => (
-            <Typography
-              key={t.id}
-              variant="caption"
-              color={i === active ? 'primary' : 'text.secondary'}
-              fontWeight={i === active ? 700 : 400}
-            >
-              Tramo {i + 1}: {t.ratePct}% {i === active ? '(activo)' : ''}
-            </Typography>
-          ))}
-        </Stack>
-      )}
-      {tierProgressWithin != null && Number.isFinite(tierProgressWithin) ? (
-        <Stack spacing={0.5}>
-          <Typography variant="caption" color="text.secondary">
-            Uso del cupo en el tramo actual
-          </Typography>
-          <LinearProgress
-            variant="determinate"
-            value={Math.min(100, Math.max(0, tierProgressWithin * 100))}
-            sx={{
-              height: 12,
-              borderRadius: '999px',
-              bgcolor: 'grey.200',
-              '& .MuiLinearProgress-bar': { borderRadius: '999px' },
-            }}
-          />
-        </Stack>
-      ) : null}
-      <Typography variant="body2" color="text.secondary">
-        Capital de referencia:{' '}
-        <Box component="span" fontWeight={600} color="text.primary">
-          {principal.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
+    <Stack spacing={1.25} sx={{ width: '100%' }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
+        <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+          {title}
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+          Ref.{' '}
+          <Box component="span" fontWeight={600} sx={{ color: 'text.primary' }}>
+            {principal.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
+          </Box>
+        </Typography>
+      </Stack>
+
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            height: 10,
+            borderRadius: '999px',
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.08)',
+            bgcolor: 'rgba(255,255,255,0.04)',
+          }}
+        >
+          {useApiSegments
+            ? segments!.map((s, i) => (
+                <Box
+                  key={`${s.sortOrder}-${i}`}
+                  sx={{
+                    width: `${Math.max(0, Math.min(1, s.fractionOfPrincipal)) * 100}%`,
+                    minWidth: s.fractionOfPrincipal > 0.02 ? 4 : 0,
+                    bgcolor: SEGMENT_PALETTE[i % SEGMENT_PALETTE.length],
+                    transition: 'width 0.2s',
+                    opacity: i === domIdx && capitalWorking ? 1 : capitalWorking ? 0.55 : 0.35,
+                    boxShadow:
+                      i === domIdx && capitalWorking
+                        ? '0 0 16px rgba(52, 211, 153, 0.35)'
+                        : undefined,
+                  }}
+                  title={`${s.annualRatePct}% · ${(s.fractionOfPrincipal * 100).toFixed(1)}% del capital`}
+                />
+              ))
+            : tiers.map((t, i) => (
+                <Box
+                  key={t.id}
+                  sx={{
+                    flex: 1,
+                    bgcolor: segmentColors[i % segmentColors.length],
+                    opacity: i === active ? 1 : 0.35,
+                    transition: 'opacity 0.2s, box-shadow 0.2s',
+                    boxShadow:
+                      i === active && capitalWorking
+                        ? '0 0 14px rgba(52, 211, 153, 0.35)'
+                        : undefined,
+                  }}
+                  title={`${t.ratePct}%`}
+                />
+              ))}
         </Box>
-        {!useApiSegments ? (
-          <>
-            {' '}
-            · Tasa demo: <strong>{tiers[active]?.ratePct ?? 0}%</strong>
-          </>
+      </Box>
+
+      <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2} flexWrap="wrap">
+        <Box
+          component="span"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1.5,
+            py: 0.5,
+            borderRadius: '999px',
+            border: '1px solid',
+            borderColor: capitalWorking ? 'rgba(52, 211, 153, 0.45)' : 'rgba(255,255,255,0.08)',
+            bgcolor: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: capitalWorking
+              ? '0 0 20px rgba(52, 211, 153, 0.25), inset 0 0 12px rgba(52, 211, 153, 0.08)'
+              : 'none',
+            transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
+          }}
+        >
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            letterSpacing={0.02}
+            sx={{
+              color: capitalWorking ? 'success.light' : '#94a3b8',
+              textTransform: 'uppercase',
+              fontSize: '0.65rem',
+            }}
+          >
+            Tramo actual
+          </Typography>
+          <Typography variant="caption" fontWeight={700} sx={{ color: 'text.primary' }}>
+            {currentRateLabel}
+          </Typography>
+        </Box>
+
+        {cupoPct != null ? (
+          <Box sx={{ flex: '1 1 140px', minWidth: 120, maxWidth: 280 }}>
+            <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: 0.35 }}>
+              Cupo del tramo
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={cupoPct}
+              sx={{
+                height: 6,
+                borderRadius: '999px',
+                bgcolor: 'rgba(255,255,255,0.06)',
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: '999px',
+                  bgcolor: 'primary.light',
+                  boxShadow: capitalWorking ? '0 0 12px rgba(96, 165, 250, 0.45)' : undefined,
+                },
+              }}
+            />
+          </Box>
         ) : null}
-      </Typography>
+      </Stack>
     </Stack>
   );
 }

@@ -62,7 +62,7 @@ function TxFeedActions({
       <button
         type="button"
         onClick={() => onEdit()}
-        className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+        className="rounded-md p-1 text-zinc-500 hover:bg-white/10 hover:text-zinc-100"
         aria-label="Editar transacción"
       >
         <Pencil size={16} strokeWidth={2} />
@@ -70,7 +70,7 @@ function TxFeedActions({
       <button
         type="button"
         onClick={() => void onDelete()}
-        className="rounded-md p-1 text-zinc-500 hover:bg-rose-50 hover:text-rose-700"
+        className="rounded-md p-1 text-zinc-500 hover:bg-rose-500/15 hover:text-rose-300"
         aria-label="Eliminar transacción"
       >
         <Trash2 size={16} strokeWidth={2} />
@@ -204,8 +204,8 @@ export function RecentActivityFeed({
   if (loading && rows.length === 0) {
     return (
       <>
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-zinc-900">Actividad reciente</h3>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-[10px]">
+          <h3 className="text-sm font-semibold text-zinc-100">Actividad reciente</h3>
           <p className="mt-2 text-sm text-zinc-500">Cargando…</p>
         </div>
         {sharedDialogs}
@@ -227,8 +227,8 @@ export function RecentActivityFeed({
   if (rows.length === 0) {
     return (
       <>
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-zinc-900">Actividad reciente</h3>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-[10px]">
+          <h3 className="text-sm font-semibold text-zinc-100">Actividad reciente</h3>
           <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
           <p className="mt-3 text-sm text-zinc-500">Aún no hay movimientos.</p>
         </div>
@@ -239,21 +239,21 @@ export function RecentActivityFeed({
 
   return (
     <>
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-[10px]">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900">Actividad reciente</h3>
+          <h3 className="text-sm font-semibold text-zinc-100">Actividad reciente</h3>
           <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
         </div>
         <button
           type="button"
           onClick={() => void load()}
-          className="shrink-0 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          className="shrink-0 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-xs font-medium text-zinc-300 hover:bg-white/10"
         >
           Actualizar
         </button>
       </div>
-      <ul className="mt-3 divide-y divide-zinc-100">
+      <ul className="mt-3 divide-y divide-white/10">
         {rows.map((row) => {
           if (row.kind === 'transfer') {
             const t = row.transfer;
@@ -265,7 +265,7 @@ export function RecentActivityFeed({
                   ↔️
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-zinc-900">
+                  <p className="font-medium text-zinc-100">
                     {t.originAccount.name} → {t.destinationAccount.name}
                   </p>
                   <p className="text-xs text-zinc-500">
@@ -299,13 +299,13 @@ export function RecentActivityFeed({
             return (
               <li
                 key={`tx-${tx.id}`}
-                className="group flex gap-3 rounded-lg border border-zinc-200/90 bg-zinc-50 py-2.5 pl-2 pr-1 text-sm first:pt-2"
+                className="group flex gap-3 rounded-lg border border-white/10 bg-white/[0.03] py-2.5 pl-2 pr-1 text-sm first:pt-2"
               >
                 <span className="mt-0.5 shrink-0 text-zinc-500" title="Ajuste manual">
                   <Wrench size={18} strokeWidth={2} aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-zinc-800">{tx.concept}</p>
+                  <p className="font-medium text-zinc-100">{tx.concept}</p>
                   <p className="text-xs text-zinc-500">
                     Ajuste manual · {accName} ·{' '}
                     {new Date(tx.occurredAt).toLocaleString('es-MX', {
@@ -340,7 +340,7 @@ export function RecentActivityFeed({
                 {icon}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-zinc-900">{tx.concept}</p>
+                <p className="font-medium text-zinc-100">{tx.concept}</p>
                 <p className="text-xs text-zinc-500">
                   {catName} · {accName} ·{' '}
                   {new Date(tx.occurredAt).toLocaleString('es-MX', {

@@ -29,7 +29,7 @@ export function AiInsightsWidget({ data }: Props) {
   return (
     <Card
       sx={{
-        borderRadius: '16px',
+        borderRadius: '20px',
         border: 'none',
         bgcolor: 'transparent',
         boxShadow: 'none',
@@ -37,30 +37,24 @@ export function AiInsightsWidget({ data }: Props) {
       }}
     >
       <CardContent
-        sx={(theme) => ({
+        sx={{
           display: 'flex',
           flexDirection: 'column',
           gap: 2.5,
           p: { xs: 2.5, sm: 3 },
-          borderRadius: '16px',
-          border: '1px solid',
-          borderColor:
-            theme.palette.mode === 'dark' ? 'rgba(129, 140, 248, 0.35)' : 'rgba(99, 102, 241, 0.22)',
+          borderRadius: '20px',
+          border: '1px solid rgba(129, 140, 248, 0.28)',
           borderLeftWidth: 4,
           borderLeftColor: 'primary.main',
-          background:
-            theme.palette.mode === 'dark'
-              ? 'linear-gradient(155deg, rgba(49, 46, 129, 0.55) 0%, rgba(30, 27, 75, 0.92) 50%, rgba(15, 23, 42, 0.98) 100%)'
-              : 'linear-gradient(155deg, rgba(238, 242, 255, 0.98) 0%, rgba(245, 243, 255, 0.96) 45%, rgba(253, 244, 255, 0.94) 100%)',
-          boxShadow:
-            theme.palette.mode === 'dark'
-              ? '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)'
-              : '0 4px 24px rgba(79, 70, 229, 0.08)',
-        })}
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)',
+        }}
       >
         <Stack direction="row" spacing={1.5} alignItems="flex-start">
           <Box
-            sx={(theme) => ({
+            sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -68,34 +62,18 @@ export function AiInsightsWidget({ data }: Props) {
               height: 40,
               borderRadius: 2,
               flexShrink: 0,
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)',
+              bgcolor: 'rgba(255,255,255,0.1)',
               color: 'primary.main',
-              boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 1px 4px rgba(79, 70, 229, 0.12)',
               animation: `${pulseSoft} 2.8s ease-in-out infinite`,
-            })}
+            }}
           >
             <Sparkles size={20} strokeWidth={2} />
           </Box>
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="overline"
-              fontWeight={700}
-              sx={(t) => ({
-                lineHeight: 1.2,
-                letterSpacing: '0.08em',
-                color: t.palette.mode === 'dark' ? 'grey.400' : 'text.secondary',
-              })}
-            >
+            <Typography variant="overline" fontWeight={700} sx={{ lineHeight: 1.2, letterSpacing: '0.08em', color: '#94a3b8' }}>
               IA financiera
             </Typography>
-            <Typography
-              variant="subtitle1"
-              fontWeight={800}
-              sx={(t) => ({
-                lineHeight: 1.25,
-                color: t.palette.mode === 'dark' ? 'grey.50' : 'text.primary',
-              })}
-            >
+            <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.25, color: '#ffffff' }}>
               Consejos según tus gastos
             </Typography>
           </Box>
@@ -108,32 +86,22 @@ export function AiInsightsWidget({ data }: Props) {
               <Box
                 component="li"
                 key={i}
-                sx={(theme) => ({
+                sx={{
                   display: 'flex',
                   gap: 1.75,
                   alignItems: 'flex-start',
                   px: 2,
                   py: 2,
                   borderRadius: 2,
-                  border: '1px solid',
-                  borderColor:
-                    theme.palette.mode === 'dark'
-                      ? alpha(theme.palette.common.white, 0.1)
-                      : alpha(theme.palette.primary.main, 0.12),
-                  background:
-                    theme.palette.mode === 'dark'
-                      ? alpha(theme.palette.common.white, 0.06)
-                      : alpha(theme.palette.background.paper, 0.72),
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  backgroundColor: 'rgba(255,255,255,0.04)',
                   backdropFilter: 'blur(10px)',
                   WebkitBackdropFilter: 'blur(10px)',
-                  boxShadow:
-                    theme.palette.mode === 'dark'
-                      ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
-                      : '0 2px 12px rgba(79, 70, 229, 0.06)',
-                })}
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                }}
               >
                 <Box
-                  sx={(theme) => ({
+                  sx={{
                     mt: 0.15,
                     display: 'flex',
                     alignItems: 'center',
@@ -142,25 +110,22 @@ export function AiInsightsWidget({ data }: Props) {
                     height: 36,
                     borderRadius: 1.5,
                     flexShrink: 0,
-                    bgcolor:
-                      theme.palette.mode === 'dark'
-                        ? alpha(theme.palette.primary.light, 0.12)
-                        : alpha(theme.palette.primary.main, 0.1),
+                    bgcolor: alpha('#6366f1', 0.12),
                     color: 'primary.light',
-                  })}
+                  }}
                 >
                   <Icon sx={{ fontSize: 20 }} />
                 </Box>
                 <Typography
                   variant="body2"
-                  sx={(theme) => ({
+                  sx={{
                     flex: 1,
                     minWidth: 0,
                     lineHeight: 1.65,
                     fontWeight: 500,
                     letterSpacing: '-0.35px',
-                    color: theme.palette.mode === 'dark' ? 'grey.100' : 'grey.900',
-                  })}
+                    color: '#ffffff',
+                  }}
                 >
                   {tip}
                 </Typography>

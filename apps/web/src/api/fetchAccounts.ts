@@ -14,6 +14,9 @@ export type AccountRow = {
   status: 'ACTIVE' | 'ARCHIVED';
   currency: string;
   balance: string;
+  /** Saldo en cajita / apartado que devenga interés por tramos. */
+  investedBalance?: string;
+  yieldStrategyId?: string | null;
   creditLimit?: string | null;
   creditCard?: CreditCardProfileRow | null;
 };
@@ -101,6 +104,44 @@ export async function patchCreditCardAccount(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
+  });
+  await assertOk(res);
+  return res.json() as Promise<AccountRow>;
+}
+
+export async function patchAccountYieldStrategy(
+  getAccessToken: () => Promise<string>,
+  accountId: string,
+  yieldStrategyId: string | null,
+): Promise<AccountRow> {
+  const token = await getAccessToken();
+  const res = await fetch(`${getApiBaseUrl()}/accounts/${encodeURIComponent(accountId)}/yield`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ yieldStrategyId }),
+  });
+  await assertOk(res);
+  return res.json() as Promise<AccountRow>;
+}
+
+export async function moveToCajita(
+  getAccessToken: () => Promise<string>,
+  accountId: string,
+  amount: number,
+): Promise<AccountRow> {
+  const token = await getAccessToken();
+  const res = await fetch(`${getApiBaseUrl()}/accounts/${encodeURIComponent(accountId)}/move-to-cajita`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ amount }),
   });
   await assertOk(res);
   return res.json() as Promise<AccountRow>;

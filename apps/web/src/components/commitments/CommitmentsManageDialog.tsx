@@ -143,7 +143,7 @@ export function CommitmentsManageDialog({
           <TableContainer sx={{ mb: 2 }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: 'action.hover' }}>
+                <TableRow>
                   <TableCell>Concepto</TableCell>
                   <TableCell>Tarjeta</TableCell>
                   <TableCell align="right">Cuota / mes</TableCell>
@@ -213,7 +213,7 @@ export function CommitmentsManageDialog({
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: 'action.hover' }}>
+                <TableRow>
                   <TableCell>Nombre</TableCell>
                   <TableCell>Cuenta</TableCell>
                   <TableCell>Frecuencia</TableCell>
