@@ -5,7 +5,7 @@ import { useTransaction } from '../../hooks/useTransaction';
 import { Spinner } from '../ui/spinner';
 
 const inputClass =
-  'mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2';
+  'mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white shadow-none outline-none backdrop-blur-sm placeholder:text-slate-500 focus:border-sky-400/40 focus:ring-2 focus:ring-sky-500/20';
 
 type Props = {
   portfolios: InvestmentsOverview['portfolios'];
@@ -20,6 +20,9 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
   const [initialAmount, setInitialAmount] = useState('');
   const [returnPct, setReturnPct] = useState('7');
   const [notes, setNotes] = useState('');
+  const [kind, setKind] = useState<'VARIABLE' | 'FIXED_TERM'>('VARIABLE');
+  const [maturityDate, setMaturityDate] = useState('');
+  const [agreedRatePct, setAgreedRatePct] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,9 +62,25 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
     }
     const expectedAnnualReturnPct = pct / 100;
 
+    if (kind === 'FIXED_TERM') {
+      if (!maturityDate.trim()) {
+        setError('La fecha de vencimiento es obligatoria para plazo fijo.');
+        return;
+      }
+      const ar = Number(String(agreedRatePct).replace(/,/g, ''));
+      if (!Number.isFinite(ar) || ar < 0) {
+        setError('Indica la tasa pactada anual (%).');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const pfName = portfolios.find((p) => p.id === portfolioId)?.name ?? 'portafolio';
+      const arDec =
+        kind === 'FIXED_TERM'
+          ? Number(String(agreedRatePct).replace(/,/g, '')) / 100
+          : undefined;
       const result = await run(
         () =>
           createPosition(getAccessToken, portfolioId, {
@@ -69,6 +88,13 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
             initialAmount: amt,
             expectedAnnualReturnPct,
             notes: notes.trim() || undefined,
+            kind,
+            ...(kind === 'FIXED_TERM'
+              ? {
+                  maturityDate: new Date(maturityDate + 'T12:00:00').toISOString(),
+                  agreedAnnualRatePct: arDec!,
+                }
+              : {}),
           }),
         {
           loadingMessage: 'Registrando posición…',
@@ -81,6 +107,9 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
         setInitialAmount('');
         setReturnPct('7');
         setNotes('');
+        setKind('VARIABLE');
+        setMaturityDate('');
+        setAgreedRatePct('');
         await onSaved();
       }
     } finally {
@@ -91,15 +120,15 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
   return (
     <form
       onSubmit={(e) => void onSubmit(e)}
-      className="rounded-lg border border-zinc-200/80 bg-zinc-50/50 p-4"
+      className="rounded-[12px] border border-white/10 bg-transparent p-4 backdrop-blur-[10px]"
     >
-      <h4 className="text-sm font-semibold text-zinc-900">Nueva posición</h4>
-      <p className="mt-0.5 text-xs text-zinc-500">
+      <h4 className="text-sm font-semibold text-white">Nueva posición</h4>
+      <p className="mt-0.5 text-xs text-[#94a3b8]">
         Monto inicial y rendimiento anual estimado. Un nombre claro ayuda a organizar tus activos.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pos-pf">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-pf">
             Portafolio
           </label>
           <select
@@ -121,7 +150,7 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
           </select>
         </div>
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pos-label">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-label">
             Etiqueta
           </label>
           <input
@@ -135,7 +164,7 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pos-amt">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-amt">
             Monto inicial
           </label>
           <input
@@ -150,7 +179,7 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pos-pct">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-pct">
             Rend. anual esperado (%)
           </label>
           <input
@@ -165,7 +194,54 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pos-notes">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-kind">
+            Tipo de instrumento
+          </label>
+          <select
+            id="pos-kind"
+            className={inputClass}
+            value={kind}
+            onChange={(e) => setKind(e.target.value as 'VARIABLE' | 'FIXED_TERM')}
+            disabled={submitting || !canSubmit}
+          >
+            <option value="VARIABLE">Renta variable / sin vencimiento fijo</option>
+            <option value="FIXED_TERM">Plazo fijo (CETES, pagaré)</option>
+          </select>
+        </div>
+        {kind === 'FIXED_TERM' ? (
+          <>
+            <div>
+              <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-mat">
+                Fecha de vencimiento
+              </label>
+              <input
+                id="pos-mat"
+                type="date"
+                className={inputClass}
+                value={maturityDate}
+                onChange={(e) => setMaturityDate(e.target.value)}
+                disabled={submitting || !canSubmit}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-agreed">
+                Tasa pactada anual (%)
+              </label>
+              <input
+                id="pos-agreed"
+                type="text"
+                inputMode="decimal"
+                className={inputClass}
+                value={agreedRatePct}
+                onChange={(e) => setAgreedRatePct(e.target.value)}
+                placeholder="10.5"
+                disabled={submitting || !canSubmit}
+              />
+            </div>
+          </>
+        ) : null}
+        <div className="sm:col-span-2">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pos-notes">
             Notas (opcional)
           </label>
           <input
@@ -181,14 +257,14 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
           <button
             type="submit"
             disabled={submitting || !canSubmit}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 disabled:opacity-50 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/[0.06] px-3 py-2 text-sm font-semibold text-white shadow-none backdrop-blur-sm transition-colors hover:border-sky-400/45 hover:bg-white/[0.1] disabled:opacity-50 sm:w-auto"
           >
             {submitting ? <Spinner /> : null}
             {submitting ? 'Guardando…' : 'Añadir posición'}
           </button>
         </div>
       </div>
-      {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
     </form>
   );
 }

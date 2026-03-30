@@ -29,7 +29,11 @@ import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
 import { fetchCategories } from '../api/fetchCategories';
 import { fetchAllActiveInstallmentPlans } from '../api/fetchInstallmentPlansMgmt';
 import { fetchUpcomingCharges } from '../api/fetchRecurringExpenses';
-import { listTransactions, type TransactionWithCategory, TRANSACTION_LIST_MAX } from '../api/fetchTransactions';
+import {
+  listTransactions,
+  type TransactionWithCategory,
+  TRANSACTION_LIST_MAX,
+} from '../api/fetchTransactions';
 import { EditTransactionDialog } from '../components/shared/EditTransactionDialog';
 import { MsiRegisterDialog } from '../components/shared/MsiRegisterDialog';
 import { NewSubscriptionDialog } from '../components/shared/NewSubscriptionDialog';
@@ -74,6 +78,8 @@ type FabDialog =
   | { kind: 'subscription' }
   | null;
 
+const registerBody = '#E2E8F0';
+
 function RegisterStatMini({
   icon,
   label,
@@ -90,24 +96,30 @@ function RegisterStatMini({
       sx={{
         p: 2.5,
         height: '100%',
-        borderRadius: '16px',
-        bgcolor: 'background.paper',
+        borderRadius: '20px',
+        bgcolor: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         border: 1,
         borderColor: 'divider',
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
+        boxShadow: 'none',
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
         <Box sx={{ color: 'primary.main', display: 'flex', flexShrink: 0 }}>{icon}</Box>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.04 }}>
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            sx={{ textTransform: 'uppercase', letterSpacing: 0.04, color: 'rgba(255, 255, 255, 0.7)' }}
+          >
             {label}
           </Typography>
-          <Typography variant="h6" fontWeight={800} sx={{ mt: 0.75, lineHeight: 1.2 }}>
+          <Typography variant="h6" fontWeight={800} sx={{ mt: 0.75, lineHeight: 1.2, color: '#ffffff' }}>
             {value}
           </Typography>
           {hint ? (
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+            <Typography variant="caption" sx={{ mt: 0.5, display: 'block', color: registerBody }}>
               {hint}
             </Typography>
           ) : null}
@@ -119,14 +131,50 @@ function RegisterStatMini({
 
 const ACTION_CARD_SX = {
   height: '100%',
-  borderRadius: '16px',
-  bgcolor: 'background.paper',
+  borderRadius: '20px',
+  bgcolor: 'rgba(255,255,255,0.03)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
   border: 1,
   borderColor: 'divider',
-  boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
+  boxShadow: 'none',
   transition: 'box-shadow 0.2s, transform 0.15s',
   '&:hover': {
-    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+  },
+} as const;
+
+function txTypeLabel(t: TransactionWithCategory): string {
+  if (t.type === 'EXPENSE') return 'Gasto';
+  if (t.type === 'INCOME') return 'Ingreso';
+  if (t.type === 'ADJUSTMENT') return 'Ajuste';
+  return t.type;
+}
+
+const registerActivityTableSx = {
+  backgroundColor: 'transparent',
+  border: 'none',
+  borderCollapse: 'collapse' as const,
+  '& .MuiTableCell-root': {
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+  },
+  '& .MuiTableCell-root:focus': {
+    outline: 'none',
+  },
+  '& .MuiTableBody-root .MuiTableRow-root': {
+    backgroundColor: 'transparent',
+    transition: 'background-color 0.3s ease',
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.05) !important',
+    },
+  },
+  '& .MuiTableBody-root .MuiTableCell-root': {
+    color: registerBody,
+  },
+  '& .MuiTableBody-root .MuiTableCell-root[data-amount="1"]': {
+    color: '#ffffff',
+    fontWeight: 600,
   },
 } as const;
 
@@ -221,20 +269,13 @@ export function RegisterPage() {
     void load();
   }
 
-  function txTypeLabel(t: TransactionWithCategory): string {
-    if (t.type === 'EXPENSE') return 'Gasto';
-    if (t.type === 'INCOME') return 'Ingreso';
-    if (t.type === 'ADJUSTMENT') return 'Ajuste';
-    return t.type;
-  }
-
   return (
     <Box
       sx={{
         minHeight: '100%',
-        bgcolor: 'background.default',
-        py: { xs: 2, sm: 3 },
-        px: { xs: 1.5, sm: 2 },
+        bgcolor: 'transparent !important',
+        background: 'transparent !important',
+        p: 3,
       }}
     >
       <Box sx={{ maxWidth: 1120, mx: 'auto' }}>
@@ -246,11 +287,11 @@ export function RegisterPage() {
             <Typography variant="h4" component="h1" fontWeight={800}>
               Registro
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" sx={{ mt: 0.5, color: registerBody }}>
               Acciones rápidas, resumen del día y últimos movimientos.
             </Typography>
           </Box>
-          <Button variant="outlined" onClick={() => void load()} disabled={loading}>
+          <Button variant="outlined" onClick={() => void load()} disabled={loading} sx={{ fontWeight: 600 }}>
             Actualizar
           </Button>
         </Stack>
@@ -258,9 +299,17 @@ export function RegisterPage() {
         {configHint}
 
         {loading ? (
-          <Typography color="text.secondary">Cargando…</Typography>
+          <Typography sx={{ color: registerBody }}>Cargando…</Typography>
         ) : error ? (
-          <Box sx={{ borderRadius: '16px', border: 1, borderColor: 'error.light', bgcolor: 'error.50', p: 2 }}>
+          <Box
+            sx={{
+              borderRadius: '20px',
+              border: 1,
+              borderColor: 'error.light',
+              bgcolor: 'rgba(244, 63, 94, 0.12)',
+              p: 2,
+            }}
+          >
             <Typography color="error">{error}</Typography>
           </Box>
         ) : (
@@ -290,7 +339,11 @@ export function RegisterPage() {
               </Grid>
             </Grid>
 
-            <Typography variant="subtitle2" fontWeight={800} color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.06 }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight={800}
+              sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.06, color: '#ffffff' }}
+            >
               Acciones rápidas
             </Typography>
             <Grid container spacing={2} sx={{ mb: 4 }}>
@@ -301,10 +354,10 @@ export function RegisterPage() {
                       <Box sx={{ color: 'success.main' }}>
                         <TrendingDown size={40} strokeWidth={2} />
                       </Box>
-                      <Typography variant="h6" fontWeight={800}>
+                      <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
                         Gasto
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{ color: registerBody }}>
                         Registra un gasto en cuenta o tarjeta con categoría y validación de saldo.
                       </Typography>
                     </Stack>
@@ -318,10 +371,10 @@ export function RegisterPage() {
                       <Box sx={{ color: 'info.main' }}>
                         <TrendingUp size={40} strokeWidth={2} />
                       </Box>
-                      <Typography variant="h6" fontWeight={800}>
+                      <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
                         Ingreso
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{ color: registerBody }}>
                         Registra un abono o ingreso en efectivo o cuenta.
                       </Typography>
                     </Stack>
@@ -335,10 +388,10 @@ export function RegisterPage() {
                       <Box sx={{ color: 'secondary.main' }}>
                         <ArrowLeftRight size={40} strokeWidth={2} />
                       </Box>
-                      <Typography variant="h6" fontWeight={800}>
+                      <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
                         Transferencia
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{ color: registerBody }}>
                         Mueve dinero entre tus cuentas en la misma moneda.
                       </Typography>
                     </Stack>
@@ -352,10 +405,10 @@ export function RegisterPage() {
                       <Box sx={{ color: 'warning.main' }}>
                         <CalendarClock size={40} strokeWidth={2} />
                       </Box>
-                      <Typography variant="h6" fontWeight={800}>
+                      <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
                         Nuevo MSI
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{ color: registerBody }}>
                         Compra a meses sin intereses en tarjeta: monto total y plazo en mensualidades.
                       </Typography>
                     </Stack>
@@ -369,10 +422,10 @@ export function RegisterPage() {
                       <Box sx={{ color: 'error.main' }}>
                         <Repeat size={40} strokeWidth={2} />
                       </Box>
-                      <Typography variant="h6" fontWeight={800}>
+                      <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
                         Nueva suscripción
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{ color: registerBody }}>
                         Cargo recurrente: frecuencia, monto y día de cobro.
                       </Typography>
                     </Stack>
@@ -383,26 +436,30 @@ export function RegisterPage() {
 
             <Box
               sx={{
-                borderRadius: '16px',
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
-                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
+                borderRadius: '20px',
+                bgcolor: 'transparent' as const,
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: 'none',
                 overflow: 'hidden',
               }}
             >
-              <Box sx={{ px: 2.5, py: 2, borderBottom: 1, borderColor: 'divider' }}>
-                <Typography variant="subtitle1" fontWeight={800}>
+              <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: 'transparent' }}>
+                <Typography variant="subtitle1" fontWeight={800} sx={{ color: '#ffffff' }}>
                   Actividad reciente
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{ color: registerBody }}>
                   Últimos 5 movimientos registrados
                 </Typography>
               </Box>
-              <TableContainer>
-                <Table size="small">
+              <TableContainer
+                sx={{
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                }}
+              >
+                <Table size="small" sx={registerActivityTableSx}>
                   <TableHead>
-                    <TableRow sx={{ bgcolor: 'action.hover' }}>
+                    <TableRow>
                       <TableCell>Fecha</TableCell>
                       <TableCell>Tipo</TableCell>
                       <TableCell>Concepto</TableCell>
@@ -417,27 +474,28 @@ export function RegisterPage() {
                     {recentFive.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6}>
-                          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                          <Typography variant="body2" sx={{ py: 2, color: registerBody }}>
                             Aún no hay movimientos.
                           </Typography>
                         </TableCell>
                       </TableRow>
                     ) : (
                       recentFive.map((t) => (
-                        <TableRow key={t.id} hover>
+                        <TableRow key={t.id}>
                           <TableCell sx={{ whiteSpace: 'nowrap' }}>{txDateYmd(t.occurredAt)}</TableCell>
                           <TableCell>{txTypeLabel(t)}</TableCell>
-                          <TableCell sx={{ fontWeight: 600, maxWidth: 220 }}>{t.concept}</TableCell>
+                          <TableCell sx={{ maxWidth: 220, color: registerBody }}>{t.concept}</TableCell>
                           <TableCell>{t.category?.name ?? '—'}</TableCell>
-                          <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                          <TableCell align="right" data-amount="1" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                             {formatMoney(t.amount, t.currency)}
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell align="right" sx={{ color: registerBody }}>
                             <Button
                               size="small"
                               variant="outlined"
                               startIcon={<Pencil size={16} />}
                               onClick={() => setEditTx(t)}
+                              sx={{ fontWeight: 600, color: '#ffffff' }}
                             >
                               Editar
                             </Button>

@@ -84,6 +84,12 @@ enum RiskTolerance {
   AGGRESSIVE
 }
 
+/// Clasificación de posición en portafolio clásico (CETES vs renta variable).
+enum InvestmentPositionKind {
+  VARIABLE
+  FIXED_TERM
+}
+
 /// Suscripción o cargo recurrente (ej. Netflix).
 enum RecurringExpenseFrequency {
   DAILY
@@ -223,6 +229,11 @@ model Account {
   tieredInvestmentsInterestDest TieredInvestment[]   @relation("TieredInvInterestDest")
   /// Cuenta WALLET donde reside el capital cautivo de una inversión por tramos (1:1).
   tieredInvestmentCapital       TieredInvestment?    @relation("TieredInvCapital")
+  /// Saldo en “cajita” / apartado que devenga interés por tramos (Sofipo/banco con rendimiento).
+  investedBalance               Decimal              @default(0) @map("invested_balance") @db.Decimal(19, 4)
+  /// Estrategia de tramos aplicada solo a `investedBalance` (interés compuesto / ganancia diaria de referencia).
+  yieldStrategyId               String?              @map("yield_strategy_id") @db.Uuid
+  yieldStrategy                 InvestmentStrategy?  @relation("AccountYieldStrategy", fields: [yieldStrategyId], references: [id], onDelete: SetNull)
   recurringExpenses             RecurringExpense[]
   recurringIncomes              RecurringIncome[]
   recurringEvents               RecurringEvent[]
@@ -461,20 +472,41 @@ model InvestmentPortfolio {
 }
 
 model InvestmentPosition {
-  id                      String   @id @default(uuid()) @db.Uuid
-  portfolioId             String   @map("portfolio_id") @db.Uuid
+  id                      String                 @id @default(uuid()) @db.Uuid
+  portfolioId             String                 @map("portfolio_id") @db.Uuid
   label                   String
-  initialAmount           Decimal  @map("initial_amount") @db.Decimal(19, 4)
+  initialAmount           Decimal                @map("initial_amount") @db.Decimal(19, 4)
   /// Rendimiento anual esperado definido por el usuario (ej. 0.075 = 7.5%)
-  expectedAnnualReturnPct Decimal  @map("expected_annual_return_pct") @db.Decimal(9, 6)
-  notes                   String?  @db.Text
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  expectedAnnualReturnPct Decimal                @map("expected_annual_return_pct") @db.Decimal(9, 6)
+  kind                    InvestmentPositionKind @default(VARIABLE)
+  /// Plazo fijo: vencimiento obligatorio en UI cuando kind = FIXED_TERM.
+  maturityDate            DateTime?              @map("maturity_date")
+  /// Tasa nominal anual pactada (ej. 0.105 = 10.5%) para CETES/pagarés.
+  agreedAnnualRatePct     Decimal?               @map("agreed_annual_rate_pct") @db.Decimal(9, 6)
+  /// Valor de mercado actual (renta variable); plusvalía vs initialAmount.
+  marketValue             Decimal?               @map("market_value") @db.Decimal(19, 4)
+  notes                   String?                @db.Text
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
 
-  portfolio InvestmentPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  portfolio     InvestmentPortfolio             @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  valueSnapshots InvestmentPositionValueSnapshot[]
 
   @@index([portfolioId])
   @@map("investment_positions")
+}
+
+/// Historial de valor de mercado para gráficas de renta variable (GBM, Bitso, etc.).
+model InvestmentPositionValueSnapshot {
+  id         String   @id @default(uuid()) @db.Uuid
+  positionId String   @map("position_id") @db.Uuid
+  recordedAt DateTime @default(now()) @map("recorded_at")
+  marketValue Decimal @map("market_value") @db.Decimal(19, 4)
+
+  position InvestmentPosition @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([positionId, recordedAt])
+  @@map("investment_position_value_snapshots")
 }
 
 model PortfolioValueSnapshot {
@@ -499,9 +531,10 @@ model InvestmentStrategy {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tiers        InvestmentTier[]
-  investments  TieredInvestment[]
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tiers         InvestmentTier[]
+  investments   TieredInvestment[]
+  yieldAccounts Account[]          @relation("AccountYieldStrategy")
 
   @@index([userId])
   @@map("investment_strategies")

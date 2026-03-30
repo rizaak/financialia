@@ -88,7 +88,61 @@ export class AccountsService {
         ...(includeArchived ? {} : { status: AccountStatus.ACTIVE }),
       },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
-      include: { creditCard: true },
+      include: {
+        creditCard: true,
+        yieldStrategy: { include: { tiers: { orderBy: { sortOrder: 'asc' } } } },
+      },
+    });
+  }
+
+  /**
+   * Mueve saldo del disponible hacia la cajita (devenga intereses por tramos). No altera el saldo total.
+   */
+  async moveToCajita(userId: string, accountId: string, amount: number) {
+    const acc = await this.assertActiveAccountForUser(accountId, userId);
+    if (!acc.yieldStrategyId) {
+      throw new BadRequestException(
+        'Asigna una estrategia de tramos a la cuenta (PATCH yield) antes de usar la cajita.',
+      );
+    }
+    const bal = Number(new Prisma.Decimal(acc.balance));
+    const inv = Number(new Prisma.Decimal(acc.investedBalance));
+    const avail = bal - inv;
+    if (amount <= 0 || amount > avail + 1e-6) {
+      throw new BadRequestException('Monto inválido o superior al saldo disponible.');
+    }
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: {
+        investedBalance: new Prisma.Decimal(inv + amount),
+      },
+      include: {
+        creditCard: true,
+        yieldStrategy: { include: { tiers: { orderBy: { sortOrder: 'asc' } } } },
+      },
+    });
+  }
+
+  async patchYieldAccount(userId: string, accountId: string, yieldStrategyId: string | null | undefined) {
+    if (yieldStrategyId === undefined) {
+      throw new BadRequestException('Envía yieldStrategyId (UUID de estrategia o null).');
+    }
+    await this.assertActiveAccountForUser(accountId, userId);
+    if (yieldStrategyId != null) {
+      const s = await this.prisma.investmentStrategy.findFirst({
+        where: { id: yieldStrategyId, userId },
+      });
+      if (!s) {
+        throw new NotFoundException('Estrategia no encontrada');
+      }
+    }
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: { yieldStrategyId },
+      include: {
+        creditCard: true,
+        yieldStrategy: { include: { tiers: { orderBy: { sortOrder: 'asc' } } } },
+      },
     });
   }
 

@@ -1,5 +1,7 @@
-import { Alert, Chip, CircularProgress, Link, Paper, Stack, Typography } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
+import { Alert, Box, Chip, CircularProgress, Link, Paper, Stack, Typography } from '@mui/material';
+import { keyframes } from '@mui/material/styles';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 type Role = 'user' | 'assistant';
@@ -13,6 +15,54 @@ type Props = {
 };
 
 type TextSegment = { type: 'text'; content: string } | { type: 'tip'; content: string };
+
+const borderSpin = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
+function VanAvatarRing() {
+  const reduce = useReducedMotion();
+  return (
+    <Box
+      sx={{
+        flexShrink: 0,
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        p: '2px',
+        background: 'linear-gradient(120deg, #38bdf8, #a855f7, #34d399, #38bdf8)',
+        backgroundSize: reduce ? '100% 100%' : '220% 220%',
+        animation: reduce ? undefined : `${borderSpin} 4s ease infinite`,
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          borderRadius: '50%',
+          bgcolor: 'rgba(15, 23, 42, 0.92)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <motion.span
+          animate={
+            reduce
+              ? undefined
+              : { opacity: [0.75, 1, 0.75], scale: [1, 1.06, 1] }
+          }
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <Sparkles size={18} className="text-sky-300" strokeWidth={2} aria-hidden />
+        </motion.span>
+      </Box>
+    </Box>
+  );
+}
 
 function splitTipMarkers(text: string): TextSegment[] {
   const parts: TextSegment[] = [];
@@ -98,7 +148,7 @@ function AssistantMessageWithTipsAndMarkers({
               sx={{
                 py: 0.75,
                 borderColor: 'success.light',
-                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(46,125,50,0.12)' : 'rgba(46,125,50,0.06)',
+                bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(46,125,50,0.12)' : 'rgba(46,125,50,0.06)'),
               }}
             >
               {seg.content}
@@ -172,17 +222,24 @@ function AssistantMessageWithRegisterLink({
   );
 }
 
+const glassBubble = {
+  background: 'rgba(255, 255, 255, 0.03)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
+  borderRadius: '20px',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
+} as const;
+
 export function ChatInsightBubble({
   role,
   text,
   onRegisterRecurringIncome,
   registering = false,
 }: Props) {
-  const theme = useTheme();
-  const primary = theme.palette.primary.main;
   const isAssistant = role === 'assistant';
 
-  return (
+  const bubble = (
     <Paper
       elevation={0}
       role={isAssistant ? 'status' : undefined}
@@ -192,25 +249,20 @@ export function ChatInsightBubble({
         alignSelf: isAssistant ? 'flex-start' : 'flex-end',
         px: 2.25,
         py: isAssistant ? 1.75 : 1.5,
-        borderRadius: 3,
+        ...glassBubble,
         ...(isAssistant
           ? {
-              borderTopLeftRadius: 6,
-              bgcolor: alpha(primary, 0.1),
-              border: `1px solid ${alpha(primary, 0.28)}`,
-              boxShadow: `0 2px 14px ${alpha(primary, 0.12)}`,
+              borderTopLeftRadius: 8,
             }
           : {
-              borderTopRightRadius: 6,
-              bgcolor: alpha(theme.palette.text.primary, 0.05),
-              border: `1px solid ${theme.palette.divider}`,
+              borderTopRightRadius: 8,
             }),
       }}
     >
       <Typography
         variant="body2"
         component="div"
-        sx={{ whiteSpace: 'pre-wrap', fontWeight: isAssistant ? 500 : 400, lineHeight: 1.65 }}
+        sx={{ whiteSpace: 'pre-wrap', fontWeight: isAssistant ? 500 : 400, lineHeight: 1.65, color: 'text.primary' }}
       >
         {isAssistant &&
         (/\[\[TIP:/.test(text) ||
@@ -227,5 +279,16 @@ export function ChatInsightBubble({
         )}
       </Typography>
     </Paper>
+  );
+
+  if (!isAssistant) {
+    return bubble;
+  }
+
+  return (
+    <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ maxWidth: '100%', alignSelf: 'flex-start' }}>
+      <VanAvatarRing />
+      {bubble}
+    </Stack>
   );
 }

@@ -4,17 +4,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        sans: ['"Inter"', '"Manrope"', 'system-ui', 'sans-serif'],
       },
       colors: {
         primary: {
-          DEFAULT: '#0D47A1',
-          dark: '#082654',
-          light: '#1565C0',
+          DEFAULT: '#38bdf8',
+          dark: '#0ea5e9',
+          light: '#7dd3fc',
         },
         brand: {
-          purple: '#7B1FA2',
-          blue: '#0D47A1',
+          purple: '#a78bfa',
+          blue: '#38bdf8',
         },
       },
     },

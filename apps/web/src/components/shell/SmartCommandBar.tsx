@@ -12,7 +12,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { Mic, Sparkles, Square } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Mic, Search, Sparkles, Square } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { ParseNaturalLanguageResponse } from '../../api/fetchParseNaturalLanguage';
@@ -30,9 +31,31 @@ type Props = {
   variant?: 'default' | 'toolbar';
 };
 
+function AnimatedSparkle() {
+  const reduce = useReducedMotion();
+  return (
+    <motion.span
+      className="inline-flex text-sky-400"
+      aria-hidden
+      title="Van"
+      animate={
+        reduce
+          ? undefined
+          : {
+              scale: [1, 1.12, 1],
+              opacity: [0.75, 1, 0.75],
+              filter: ['drop-shadow(0 0 6px rgba(56,189,248,0.4))', 'drop-shadow(0 0 14px rgba(167,139,250,0.55))', 'drop-shadow(0 0 6px rgba(56,189,248,0.4))'],
+            }
+      }
+      transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      <Sparkles size={20} strokeWidth={2} className="shrink-0" />
+    </motion.span>
+  );
+}
+
 /**
- * Entrada inteligente: texto o voz → API → TransactionReviewDialog.
- * Voz: `useVoiceRecorder` + `useEffect` en `audioBlob` → POST /ai/process-voice.
+ * Entrada tipo búsqueda con chispa animada (Van) + voz → API → TransactionReviewDialog.
  */
 export function SmartCommandBar({
   getAccessToken,
@@ -111,9 +134,7 @@ export function SmartCommandBar({
     }
     void startRecording().catch((e: unknown) => {
       if (e instanceof VoiceRecorderPermissionError) {
-        toast.warning(
-          '⚠️ Necesitamos permiso de micrófono para grabar tu nota',
-        );
+        toast.warning('Necesitamos permiso de micrófono para grabar tu nota');
         return;
       }
       toast.error('No se pudo acceder al micrófono.');
@@ -162,114 +183,125 @@ export function SmartCommandBar({
       </Backdrop>
 
       <Box sx={{ mb: variant === 'toolbar' ? 0 : 2 }}>
-        <TextField
-          variant="outlined"
-          fullWidth
-          size="small"
-          placeholder="¿Qué pasó hoy? (Ej: Gasté 200 en tacos con BBVA)"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={busy || isRecording}
+        <Box
           sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 9999,
-              pl: 1.25,
-            },
+            borderRadius: '20px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.04)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            px: 0.5,
+            py: 0.25,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
           }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <span
-                  className="inline-flex text-violet-600 dark:text-amber-400"
-                  aria-hidden
-                  title="Asistente IA"
-                >
-                  <Sparkles size={20} strokeWidth={2} className="shrink-0" />
-                </span>
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end" sx={{ mr: 0.25 }}>
-                <Tooltip
-                  title={
-                    audioProcessing && !isRecording
-                      ? 'Procesando audio…'
-                      : isRecording
-                        ? 'Detener y transcribir'
-                        : 'Dictar con el micrófono'
-                  }
-                >
-                  <Stack
-                    component="span"
-                    direction="row"
-                    alignItems="center"
-                    spacing={0.75}
-                    sx={{
-                      position: 'relative',
-                      zIndex: isRecording ? theme.zIndex.modal + 2 : undefined,
-                      display: 'inline-flex',
-                    }}
-                  >
-                    {isRecording ? (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontVariantNumeric: 'tabular-nums',
-                          fontWeight: 700,
-                          color: 'error.main',
-                          minWidth: '3.25rem',
-                        }}
-                        aria-live="polite"
-                      >
-                        {formatRecordingElapsed(recordingTime)}
-                      </Typography>
-                    ) : null}
-                    <IconButton
-                      onClick={handleMicClick}
-                      disabled={busy}
-                      size="small"
-                      aria-pressed={isRecording}
-                      aria-busy={audioProcessing && !isRecording}
-                      aria-label={
-                        audioProcessing && !isRecording
-                          ? 'Procesando audio'
-                          : isRecording
-                            ? 'Detener grabación'
-                            : 'Iniciar grabación de voz'
-                      }
-                      className={isRecording ? 'animate-pulse' : undefined}
-                      sx={
-                        isRecording
-                          ? {
-                              bgcolor: 'error.main',
-                              color: 'error.contrastText',
-                              '&:hover': { bgcolor: 'error.dark' },
-                            }
-                          : {}
-                      }
-                    >
-                      {audioProcessing && !isRecording ? (
-                        <CircularProgress size={20} thickness={5} color="primary" />
-                      ) : isRecording ? (
-                        <Square size={16} fill="currentColor" />
-                      ) : (
-                        <Mic size={20} strokeWidth={2} />
-                      )}
-                    </IconButton>
+        >
+          <TextField
+            variant="standard"
+            fullWidth
+            size="small"
+            placeholder="Pregúntale a Van o describe un movimiento…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={busy || isRecording}
+            InputProps={{
+              disableUnderline: true,
+              sx: {
+                px: 1.5,
+                py: 1,
+                color: 'text.primary',
+                '&::placeholder': { color: '#94a3b8', opacity: 1 },
+              },
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mr: 0.5 }}>
+                    <Search size={18} className="shrink-0 text-slate-500" strokeWidth={2} aria-hidden />
+                    <AnimatedSparkle />
                   </Stack>
-                </Tooltip>
-              </InputAdornment>
-            ),
-          }}
-        />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end" sx={{ mr: 0.25 }}>
+                  <Tooltip
+                    title={
+                      audioProcessing && !isRecording
+                        ? 'Procesando audio…'
+                        : isRecording
+                          ? 'Detener y transcribir'
+                          : 'Dictar con el micrófono'
+                    }
+                  >
+                    <Stack
+                      component="span"
+                      direction="row"
+                      alignItems="center"
+                      spacing={0.75}
+                      sx={{
+                        position: 'relative',
+                        zIndex: isRecording ? theme.zIndex.modal + 2 : undefined,
+                        display: 'inline-flex',
+                      }}
+                    >
+                      {isRecording ? (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontVariantNumeric: 'tabular-nums',
+                            fontWeight: 700,
+                            color: 'error.main',
+                            minWidth: '3.25rem',
+                          }}
+                          aria-live="polite"
+                        >
+                          {formatRecordingElapsed(recordingTime)}
+                        </Typography>
+                      ) : null}
+                      <IconButton
+                        onClick={handleMicClick}
+                        disabled={busy}
+                        size="small"
+                        aria-pressed={isRecording}
+                        aria-busy={audioProcessing && !isRecording}
+                        aria-label={
+                          audioProcessing && !isRecording
+                            ? 'Procesando audio'
+                            : isRecording
+                              ? 'Detener grabación'
+                              : 'Iniciar grabación de voz'
+                        }
+                        className={isRecording ? 'animate-pulse' : undefined}
+                        sx={
+                          isRecording
+                            ? {
+                                bgcolor: 'error.main',
+                                color: 'error.contrastText',
+                                '&:hover': { bgcolor: 'error.dark' },
+                              }
+                            : {}
+                        }
+                      >
+                        {audioProcessing && !isRecording ? (
+                          <CircularProgress size={20} thickness={5} color="primary" />
+                        ) : isRecording ? (
+                          <Square size={16} fill="currentColor" />
+                        ) : (
+                          <Mic size={20} strokeWidth={2} />
+                        )}
+                      </IconButton>
+                    </Stack>
+                  </Tooltip>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
         {busy ? (
           <Box sx={{ mt: 1 }}>
             {audioProcessing ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <CircularProgress size={22} thickness={5} color="primary" />
-                <Typography variant="body2" color="text.secondary">
-                  La IA está escuchando…
+                <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                  Van está procesando tu audio…
                 </Typography>
               </Box>
             ) : (
@@ -283,8 +315,8 @@ export function SmartCommandBar({
                     opacity: 0.9,
                   }}
                 />
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                  Interpretando tu mensaje…
+                <Typography variant="caption" sx={{ mt: 0.5, display: 'block', color: '#94a3b8' }}>
+                  Van interpreta tu mensaje…
                 </Typography>
               </>
             )}

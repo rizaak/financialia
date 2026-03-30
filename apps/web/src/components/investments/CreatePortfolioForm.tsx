@@ -4,7 +4,7 @@ import { useTransaction } from '../../hooks/useTransaction';
 import { Spinner } from '../ui/spinner';
 
 const inputClass =
-  'mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2';
+  'mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white shadow-none outline-none backdrop-blur-sm placeholder:text-slate-500 focus:border-sky-400/40 focus:ring-2 focus:ring-sky-500/20';
 
 type Props = {
   getAccessToken: () => Promise<string>;
@@ -56,12 +56,12 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
   return (
     <form
       onSubmit={(e) => void onSubmit(e)}
-      className="rounded-lg border border-zinc-200/80 bg-zinc-50/50 p-4"
+      className="rounded-[12px] border border-white/10 bg-transparent p-4 backdrop-blur-[10px]"
     >
-      <h4 className="text-sm font-semibold text-zinc-900">Nuevo portafolio</h4>
+      <h4 className="text-sm font-semibold text-white">Nuevo portafolio</h4>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pf-name">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pf-name">
             Nombre
           </label>
           <input
@@ -76,7 +76,7 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pf-desc">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pf-desc">
             Descripción (opcional)
           </label>
           <textarea
@@ -90,7 +90,7 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-zinc-600" htmlFor="pf-ccy">
+          <label className="text-xs font-medium text-[#94a3b8]" htmlFor="pf-ccy">
             Moneda base
           </label>
           <select
@@ -109,14 +109,14 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-zinc-800 disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/[0.06] px-3 py-2 text-sm font-semibold text-white shadow-none backdrop-blur-sm transition-colors hover:border-sky-400/45 hover:bg-white/[0.1] disabled:opacity-50"
           >
             {submitting ? <Spinner className="text-white" /> : null}
             {submitting ? 'Guardando…' : 'Crear portafolio'}
           </button>
         </div>
       </div>
-      {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
     </form>
   );
 }

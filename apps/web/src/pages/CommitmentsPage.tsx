@@ -29,6 +29,60 @@ function freqLabel(f: RecurringExpenseListRow['frequency']): string {
   return recurringExpenseFrequencyLabel(f);
 }
 
+/** Redondeo equilibrado; el Paper recorta el contenido para alinear cabecera y borde exterior. */
+const commitmentsTablePaperSx = {
+  borderRadius: '12px',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  backgroundColor: 'transparent !important',
+  backgroundImage: 'none !important',
+  backdropFilter: 'blur(10px)',
+  WebkitBackdropFilter: 'blur(10px)',
+  boxShadow: 'none',
+  overflow: 'hidden',
+} as const;
+
+const commitmentsTableContainerSx = {
+  backgroundColor: 'transparent',
+  borderRadius: '12px',
+  overflow: 'hidden',
+} as const;
+
+const commitmentsTableSx = {
+  borderRadius: '12px',
+  borderCollapse: 'collapse' as const,
+  backgroundColor: 'transparent',
+  width: '100%',
+  '& .MuiTableHead-root .MuiTableCell-root': {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    color: '#94a3b8',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    textTransform: 'none',
+    letterSpacing: 'normal',
+    lineHeight: 1.3,
+    padding: '15px 16px',
+    minHeight: 52,
+    boxSizing: 'border-box',
+    verticalAlign: 'middle',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+  },
+  '& .MuiTableBody-root .MuiTableCell-root': {
+    borderRadius: 0,
+    padding: '12px 16px',
+    fontSize: '0.9rem',
+    color: '#ffffff',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+    verticalAlign: 'middle',
+  },
+} as const;
+
+const commitmentsBodyRowSx = {
+  '&:hover': {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  '& td': { borderRadius: 0 },
+} as const;
+
 export function CommitmentsPage() {
   const { getAccessToken, notifyTransactionSaved } = useOutletContext<ShellOutletContext>();
   const [msi, setMsi] = useState<InstallmentPlanCommitmentRow[]>([]);
@@ -95,11 +149,11 @@ export function CommitmentsPage() {
       <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>
         MSI y compras a meses (activos)
       </Typography>
-      <Paper variant="outlined" sx={{ borderRadius: 2, mb: 4, overflow: 'hidden' }}>
-        <TableContainer>
-          <Table size="small">
+      <Paper elevation={0} sx={{ ...commitmentsTablePaperSx, mb: 4 }}>
+        <TableContainer sx={commitmentsTableContainerSx}>
+          <Table size="small" sx={commitmentsTableSx}>
             <TableHead>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
+              <TableRow>
                 <TableCell>Concepto</TableCell>
                 <TableCell>Tarjeta</TableCell>
                 <TableCell align="right">Cuota / mes</TableCell>
@@ -127,7 +181,7 @@ export function CommitmentsPage() {
                 </TableRow>
               ) : (
                 msi.map((row) => (
-                  <TableRow key={row.id} hover>
+                  <TableRow key={row.id} sx={commitmentsBodyRowSx}>
                     <TableCell sx={{ fontWeight: 600 }}>{row.label}</TableCell>
                     <TableCell>{row.accountName}</TableCell>
                     <TableCell align="right">{formatMoney(row.monthlyAmount, row.currency)}</TableCell>
@@ -149,11 +203,11 @@ export function CommitmentsPage() {
       <Typography variant="h6" fontWeight={800} sx={{ mb: 1.5 }}>
         Suscripciones y pagos recurrentes
       </Typography>
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <TableContainer>
-          <Table size="small">
+      <Paper elevation={0} sx={commitmentsTablePaperSx}>
+        <TableContainer sx={commitmentsTableContainerSx}>
+          <Table size="small" sx={commitmentsTableSx}>
             <TableHead>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
+              <TableRow>
                 <TableCell>Nombre</TableCell>
                 <TableCell>Cuenta</TableCell>
                 <TableCell>Frecuencia</TableCell>
@@ -180,7 +234,7 @@ export function CommitmentsPage() {
                 </TableRow>
               ) : (
                 subs.map((row) => (
-                  <TableRow key={row.id} hover>
+                  <TableRow key={row.id} sx={commitmentsBodyRowSx}>
                     <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
                     <TableCell>{row.account.name}</TableCell>
                     <TableCell>{freqLabel(row.frequency)}</TableCell>
