@@ -82,8 +82,8 @@ export function AccountsPage() {
 
   const refreshAllAccounts = useCallback(async () => {
     await fetchAccounts(getAccessToken);
-    const all = await fetchAccountsApi(getAccessToken, { includeArchived: true });
-    setAccountsAll(all);
+    const activeOnly = await fetchAccountsApi(getAccessToken);
+    setAccountsAll(activeOnly);
   }, [getAccessToken, fetchAccounts]);
 
   useEffect(() => {
@@ -99,11 +99,6 @@ export function AccountsPage() {
     const src = accountsAll ?? summary?.accounts ?? [];
     return src.filter((a) => a.type !== 'CREDIT_CARD' && a.status !== 'ARCHIVED');
   }, [accountsAll, summary?.accounts]);
-
-  const archivedAccounts = useMemo(
-    () => accountsAll?.filter((a) => a.status === 'ARCHIVED') ?? [],
-    [accountsAll],
-  );
 
   const cur = summary?.defaultCurrency ?? defaultCurrency;
 
@@ -482,21 +477,16 @@ export function AccountsPage() {
             </div>
           </SectionCard>
 
-          {archivedAccounts.length > 0 ? (
-            <SectionCard title="Cuentas archivadas" subtitle="No se incluyen en patrimonio ni en selectores de movimientos.">
-              <ul className="space-y-2 text-sm text-zinc-700">
-                {archivedAccounts.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-100 px-3 py-2">
-                    <span>
-                      <span className="font-medium text-zinc-900">{a.name}</span>
-                      {' · '}
-                      {accountTypeLabel(a.type)} · {a.currency} · {formatMoney(a.balance, a.currency)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
-          ) : null}
+          <Typography variant="body2" color="text.secondary" className="text-center sm:text-left">
+            Las cuentas archivadas no se muestran aquí.{' '}
+            <button
+              type="button"
+              className="font-semibold text-emerald-700 underline decoration-emerald-700/40 underline-offset-2 hover:text-emerald-800"
+              onClick={() => navigate('/ajustes#elementos-archivados')}
+            >
+              Ver en Ajustes → Elementos archivados
+            </button>
+          </Typography>
         </div>
       ) : null}
 

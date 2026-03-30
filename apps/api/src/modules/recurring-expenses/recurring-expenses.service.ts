@@ -55,11 +55,23 @@ export class RecurringExpensesService {
   }
 
   async create(userId: string, dto: CreateRecurringExpenseDto) {
-    if (dto.frequency === RecurringExpenseFrequency.ANNUAL && (dto.billingMonth == null || dto.billingMonth < 1)) {
-      throw new BadRequestException('Para frecuencia anual indica billingMonth (1–12).');
+    const needsMonth =
+      dto.frequency === RecurringExpenseFrequency.ANNUAL ||
+      dto.frequency === RecurringExpenseFrequency.SEMIANNUAL;
+    if (needsMonth && (dto.billingMonth == null || dto.billingMonth < 1 || dto.billingMonth > 12)) {
+      throw new BadRequestException('Para frecuencia anual o semestral indica el mes (1–12).');
     }
-    if (dto.frequency === RecurringExpenseFrequency.MONTHLY && dto.billingMonth != null) {
-      throw new BadRequestException('billingMonth solo aplica a frecuencia anual.');
+    if (!needsMonth && dto.billingMonth != null) {
+      throw new BadRequestException('billingMonth solo aplica a frecuencia anual o semestral.');
+    }
+    if (
+      dto.frequency === RecurringExpenseFrequency.WEEKLY &&
+      (dto.billingWeekday == null || dto.billingWeekday < 0 || dto.billingWeekday > 6)
+    ) {
+      throw new BadRequestException('Para frecuencia semanal indica el día de la semana (0=domingo … 6=sábado).');
+    }
+    if (dto.frequency !== RecurringExpenseFrequency.WEEKLY && dto.billingWeekday != null) {
+      throw new BadRequestException('billingWeekday solo aplica a frecuencia semanal.');
     }
 
     const category = await this.prisma.category.findFirst({
@@ -91,7 +103,8 @@ export class RecurringExpensesService {
         accountId: dto.accountId,
         frequency: dto.frequency,
         billingDay: dto.billingDay,
-        billingMonth: dto.frequency === RecurringExpenseFrequency.ANNUAL ? dto.billingMonth! : null,
+        billingMonth: needsMonth ? dto.billingMonth! : null,
+        billingWeekday: dto.frequency === RecurringExpenseFrequency.WEEKLY ? dto.billingWeekday! : null,
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
@@ -109,10 +122,12 @@ export class RecurringExpensesService {
     }
 
     const finalFreq = dto.frequency ?? existing.frequency;
-    if (finalFreq === RecurringExpenseFrequency.ANNUAL) {
+    const needsMonth =
+      finalFreq === RecurringExpenseFrequency.ANNUAL || finalFreq === RecurringExpenseFrequency.SEMIANNUAL;
+    if (needsMonth) {
       const bm = dto.billingMonth !== undefined ? dto.billingMonth : existing.billingMonth;
       if (bm == null || bm < 1 || bm > 12) {
-        throw new BadRequestException('Para frecuencia anual indica billingMonth (1–12).');
+        throw new BadRequestException('Para frecuencia anual o semestral indica billingMonth (1–12).');
       }
     }
 
@@ -139,11 +154,21 @@ export class RecurringExpensesService {
     if (dto.amount != null) patch.amount = new Prisma.Decimal(dto.amount);
     if (dto.billingDay != null) patch.billingDay = dto.billingDay;
     if (dto.frequency != null) patch.frequency = dto.frequency;
-    if (finalFreq === RecurringExpenseFrequency.ANNUAL) {
+    if (needsMonth) {
       patch.billingMonth =
         dto.billingMonth !== undefined ? dto.billingMonth : existing.billingMonth;
     } else {
       patch.billingMonth = null;
+    }
+    if (finalFreq === RecurringExpenseFrequency.WEEKLY) {
+      const bw =
+        dto.billingWeekday !== undefined ? dto.billingWeekday : existing.billingWeekday;
+      if (bw == null || bw < 0 || bw > 6) {
+        throw new BadRequestException('Para frecuencia semanal indica billingWeekday (0–6).');
+      }
+      patch.billingWeekday = bw;
+    } else {
+      patch.billingWeekday = null;
     }
     if (dto.categoryId != null) patch.category = { connect: { id: dto.categoryId } };
     if (dto.accountId != null) patch.account = { connect: { id: dto.accountId } };
@@ -248,16 +273,7 @@ export class RecurringExpensesService {
 
     const out: Array<{ recurringExpenseId: string; message: string }> = [];
     for (const re of rows) {
-      if (
-        !matchesRecurringOnLocalDate(
-          re.frequency,
-          re.billingDay,
-          re.billingMonth,
-          today.y,
-          today.m,
-          today.d,
-        )
-      ) {
+      if (!matchesRecurringOnLocalDate(re, tz, today.y, today.m, today.d)) {
         continue;
       }
       if (re.lastConfirmedAt != null && sameLocalCalendarDay(tz, re.lastConfirmedAt, now)) {

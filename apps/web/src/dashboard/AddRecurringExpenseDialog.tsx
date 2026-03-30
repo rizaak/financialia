@@ -52,6 +52,7 @@ export function AddRecurringExpenseDialog({
   const [billingDay, setBillingDay] = useState('1');
   const [frequency, setFrequency] = useState<RecurringFrequency>('MONTHLY');
   const [billingMonth, setBillingMonth] = useState('1');
+  const [billingWeekday, setBillingWeekday] = useState('1');
   const [categoryId, setCategoryId] = useState('');
   const [accountId, setAccountId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -63,6 +64,7 @@ export function AddRecurringExpenseDialog({
     setBillingDay('1');
     setFrequency('MONTHLY');
     setBillingMonth('1');
+    setBillingWeekday('1');
     setCategoryId('');
     setAccountId(inCur.length === 1 ? inCur[0].id : '');
   }, [open, inCur]);
@@ -70,23 +72,30 @@ export function AddRecurringExpenseDialog({
   async function submit() {
     const amt = Number(amount.replace(/,/g, ''));
     if (!name.trim() || !Number.isFinite(amt) || amt <= 0) return;
-    const bd = Number(billingDay);
-    if (!Number.isInteger(bd) || bd < 1 || bd > 31) return;
     if (!categoryId || !accountId) return;
+
+    const needsDayInMonth = ['MONTHLY', 'ANNUAL', 'SEMIANNUAL'].includes(frequency);
+    const bd = Number(billingDay);
+    if (needsDayInMonth && (!Number.isInteger(bd) || bd < 1 || bd > 31)) return;
 
     const body: CreateRecurringExpenseBody = {
       name: name.trim(),
       amount: amt,
-      billingDay: bd,
+      billingDay: needsDayInMonth ? bd : 1,
       frequency,
       categoryId,
       accountId,
       currency: cur,
     };
-    if (frequency === 'ANNUAL') {
+    if (frequency === 'ANNUAL' || frequency === 'SEMIANNUAL') {
       const bm = Number(billingMonth);
       if (!Number.isInteger(bm) || bm < 1 || bm > 12) return;
       body.billingMonth = bm;
+    }
+    if (frequency === 'WEEKLY') {
+      const bw = Number(billingWeekday);
+      if (!Number.isInteger(bw) || bw < 0 || bw > 6) return;
+      body.billingWeekday = bw;
     }
 
     setSubmitting(true);
@@ -131,13 +140,17 @@ export function AddRecurringExpenseDialog({
               value={frequency}
               onChange={(e) => setFrequency(e.target.value as RecurringFrequency)}
             >
+              <MenuItem value="DAILY">Diaria</MenuItem>
+              <MenuItem value="WEEKLY">Semanal</MenuItem>
+              <MenuItem value="QUINCENAL">Quincenal (15 y fin de mes)</MenuItem>
               <MenuItem value="MONTHLY">Mensual</MenuItem>
+              <MenuItem value="SEMIANNUAL">Semestral</MenuItem>
               <MenuItem value="ANNUAL">Anual</MenuItem>
             </Select>
           </FormControl>
-          {frequency === 'ANNUAL' ? (
+          {frequency === 'ANNUAL' || frequency === 'SEMIANNUAL' ? (
             <TextField
-              label="Mes del cobro (1–12)"
+              label="Mes de referencia (1–12)"
               type="number"
               inputProps={{ min: 1, max: 12 }}
               value={billingMonth}
@@ -146,15 +159,36 @@ export function AddRecurringExpenseDialog({
               fullWidth
             />
           ) : null}
-          <TextField
-            label="Día de cargo (1–31)"
-            type="number"
-            inputProps={{ min: 1, max: 31 }}
-            value={billingDay}
-            onChange={(e) => setBillingDay(e.target.value)}
-            size="small"
-            fullWidth
-          />
+          {frequency === 'WEEKLY' ? (
+            <FormControl size="small" fullWidth>
+              <InputLabel id="wd-label">Día de la semana</InputLabel>
+              <Select
+                labelId="wd-label"
+                label="Día de la semana"
+                value={billingWeekday}
+                onChange={(e) => setBillingWeekday(e.target.value)}
+              >
+                {['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'].map(
+                  (label, i) => (
+                    <MenuItem key={label} value={String(i)}>
+                      {label}
+                    </MenuItem>
+                  ),
+                )}
+              </Select>
+            </FormControl>
+          ) : null}
+          {['MONTHLY', 'ANNUAL', 'SEMIANNUAL'].includes(frequency) ? (
+            <TextField
+              label="Día de cargo en el mes (1–31)"
+              type="number"
+              inputProps={{ min: 1, max: 31 }}
+              value={billingDay}
+              onChange={(e) => setBillingDay(e.target.value)}
+              size="small"
+              fullWidth
+            />
+          ) : null}
           <FormControl size="small" fullWidth>
             <InputLabel id="cat-label">Categoría</InputLabel>
             <Select

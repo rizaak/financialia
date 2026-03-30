@@ -27,12 +27,23 @@ export class CreateRecurringExpenseDto {
   @IsEnum(RecurringExpenseFrequency)
   frequency!: RecurringExpenseFrequency;
 
-  @ValidateIf((o: CreateRecurringExpenseDto) => o.frequency === RecurringExpenseFrequency.ANNUAL)
+  @ValidateIf(
+    (o: CreateRecurringExpenseDto) =>
+      o.frequency === RecurringExpenseFrequency.ANNUAL ||
+      o.frequency === RecurringExpenseFrequency.SEMIANNUAL,
+  )
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(12)
   billingMonth?: number;
+
+  @ValidateIf((o: CreateRecurringExpenseDto) => o.frequency === RecurringExpenseFrequency.WEEKLY)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  billingWeekday?: number;
 
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 4 })

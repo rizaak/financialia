@@ -3,7 +3,10 @@ import {
   Autocomplete,
   Box,
   Button,
-  Drawer,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
@@ -61,7 +64,8 @@ function AccountGlyph({ type }: { type: AccountRow['type'] }) {
 }
 
 /**
- * Panel lateral: Gasto, Ingreso o Transferencia (RHF + Zod + validación de saldo en gastos).
+ * Modal centrado (mismo estilo base que la revisión IA): Gasto, Ingreso o Transferencia
+ * (RHF + Zod + validación de saldo en gastos).
  */
 export function TransactionDialog({
   open,
@@ -78,25 +82,42 @@ export function TransactionDialog({
     mode === 'expense' ? 'Registrar gasto' : mode === 'income' ? 'Registrar ingreso' : 'Transferir entre cuentas';
 
   return (
-    <Drawer
-      anchor="right"
+    <Dialog
       open={open}
       onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      slotProps={{
+        backdrop: {
+          className: 'backdrop-blur-md bg-black/35 dark:bg-black/50',
+          sx: { backdropFilter: 'blur(12px)' },
+        },
+      }}
       PaperProps={{
+        elevation: 0,
         sx: {
-          width: { xs: '100%', sm: 440 },
-          maxWidth: '100vw',
-          display: 'flex',
-          flexDirection: 'column',
+          maxWidth: 500,
+          width: '100%',
+          borderRadius: 2,
+          border: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
         },
       }}
     >
-      <Box sx={{ px: 2.5, pt: 2.5, pb: 1, borderBottom: 1, borderColor: 'divider' }}>
+      <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="h6" component="h2" fontWeight={700}>
           {title}
         </Typography>
-      </Box>
-      <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 2 }}>
+      </DialogTitle>
+      <DialogContent
+        dividers
+        sx={{
+          pt: 2,
+          maxHeight: 'min(70vh, 640px)',
+          overflowY: 'auto',
+        }}
+      >
         {open && mode === 'expense' ? (
           <ExpenseIncomeDialogBody
             kind="EXPENSE"
@@ -130,13 +151,21 @@ export function TransactionDialog({
             onClose={onClose}
           />
         ) : null}
-      </Box>
-      <Box sx={{ px: 2.5, py: 2, borderTop: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+      </DialogContent>
+      <DialogActions
+        sx={{
+          px: 2.5,
+          py: 2,
+          bgcolor: (t) => (t.palette.mode === 'dark' ? 'action.selected' : 'grey.50'),
+          borderTop: 1,
+          borderColor: 'divider',
+        }}
+      >
         <Button onClick={onClose} color="inherit" fullWidth variant="outlined">
           Cerrar
         </Button>
-      </Box>
-    </Drawer>
+      </DialogActions>
+    </Dialog>
   );
 }
 
