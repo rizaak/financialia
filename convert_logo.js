@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Convierte logo-vantix.svg → logo-vantix-auth0.png (512×512, fondo transparente).
- * Requiere: npm install sharp
+ * Convierte logo-vantix.svg (raíz del repo) → apps/web/public/logo-vantix.png (512×512, fondo transparente).
+ * URL pública única para Auth0: {tu-dominio}/logo-vantix.png
+ * Requiere: npm install sharp (en la raíz del monorepo)
  */
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +10,7 @@ const sharp = require('sharp');
 
 const ROOT = __dirname;
 const SVG_NAME = 'logo-vantix.svg';
-const OUT_NAME = 'logo-vantix-auth0.png';
+const OUT_REL = path.join('apps', 'web', 'public', 'logo-vantix.png');
 
 async function main() {
   const svgPath = path.join(ROOT, SVG_NAME);
@@ -18,10 +19,11 @@ async function main() {
     process.exit(1);
   }
 
-  const svgBuffer = fs.readFileSync(svgPath);
-  const outPath = path.join(ROOT, OUT_NAME);
+  const outPath = path.join(ROOT, OUT_REL);
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
-  // density alta para rasterizar el SVG con margen antes del resize a 512
+  const svgBuffer = fs.readFileSync(svgPath);
+
   await sharp(svgBuffer, { density: 400 })
     .resize(512, 512, {
       fit: 'contain',
