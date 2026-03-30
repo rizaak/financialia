@@ -1,4 +1,4 @@
-import type { RecurringExpense, RecurringExpenseFrequency } from '@prisma/client';
+import type { RecurringExpense } from '@prisma/client';
 
 export type LocalYmd = { y: number; m: number; d: number };
 
@@ -69,24 +69,50 @@ export function addCalendarDays(y: number, m: number, d: number, add: number): L
 }
 
 export function matchesRecurringOnLocalDate(
-  frequency: RecurringExpenseFrequency,
-  billingDay: number,
-  billingMonth: number | null,
+  re: Pick<
+    RecurringExpense,
+    'frequency' | 'billingDay' | 'billingMonth' | 'billingWeekday'
+  >,
+  tz: string,
   y: number,
   m: number,
   d: number,
 ): boolean {
+  const { frequency, billingDay, billingMonth, billingWeekday } = re;
+
+  if (frequency === 'DAILY') {
+    return true;
+  }
+
+  if (frequency === 'WEEKLY') {
+    if (billingWeekday == null) return false;
+    return getLocalWeekdayInTz(tz, y, m, d) === billingWeekday;
+  }
+
+  if (frequency === 'QUINCENAL') {
+    const dim = daysInMonth(y, m);
+    return d === 15 || d === dim;
+  }
+
   const eff = effectiveBillingDay(billingDay, y, m);
+
   if (frequency === 'MONTHLY') {
     return d === eff;
   }
+
   if (frequency === 'ANNUAL') {
     const bm = billingMonth ?? 1;
-    if (m !== bm) {
-      return false;
-    }
+    if (m !== bm) return false;
     return d === eff;
   }
+
+  if (frequency === 'SEMIANNUAL') {
+    const bm = billingMonth ?? 1;
+    const m2 = bm <= 6 ? bm + 6 : bm - 6;
+    if (m !== bm && m !== m2) return false;
+    return d === eff;
+  }
+
   return false;
 }
 
@@ -111,7 +137,7 @@ export function formatAmountEs(amount: number, currency: string): string {
 
 /** Próximo día de cobro en los próximos `horizonDays` (incluye hoy), o null si no cae en la ventana. */
 export function nextChargeWithinHorizon(
-  re: Pick<RecurringExpense, 'frequency' | 'billingDay' | 'billingMonth'>,
+  re: Pick<RecurringExpense, 'frequency' | 'billingDay' | 'billingMonth' | 'billingWeekday'>,
   tz: string,
   now: Date,
   horizonDays: number,
@@ -119,7 +145,7 @@ export function nextChargeWithinHorizon(
   const today = getLocalPartsInTz(tz, now);
   for (let i = 0; i < horizonDays; i++) {
     const { y, m, d } = addCalendarDays(today.y, today.m, today.d, i);
-    if (matchesRecurringOnLocalDate(re.frequency, re.billingDay, re.billingMonth, y, m, d)) {
+    if (matchesRecurringOnLocalDate(re, tz, y, m, d)) {
       return { chargeOn: { y, m, d }, daysFromToday: i };
     }
   }

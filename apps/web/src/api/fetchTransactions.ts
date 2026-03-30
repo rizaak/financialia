@@ -28,6 +28,11 @@ export type CreateTransactionPayload = {
   occurredAt?: string;
   currency?: string;
   source?: 'MANUAL' | 'WHATSAPP' | 'TELEGRAM' | 'AI_ASSISTANT' | 'IMPORT';
+  /** Compra a meses (MSI) en tarjeta de crédito; requiere `totalInstallments` (2–60). */
+  isInstallment?: boolean;
+  totalInstallments?: number;
+  installmentInterestFree?: boolean;
+  planInterestRate?: number;
 };
 
 export type TransactionWithCategory = Omit<CreateTransactionPayload, 'type'> & {

@@ -13,12 +13,28 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   patchRecurringExpense,
+  recurringExpenseFrequencyLabel,
   type RecurringExpenseListRow,
 } from '../../api/fetchRecurringExpenses';
 import { formatMoney } from '../../lib/formatMoney';
 
 function amountLabel(f: RecurringExpenseListRow['frequency']): string {
-  return f === 'MONTHLY' ? 'Monto por cargo (mensual)' : 'Monto por cargo (anual)';
+  return `Monto por período (${recurringExpenseFrequencyLabel(f)})`;
+}
+
+function billingScheduleLine(row: RecurringExpenseListRow): string {
+  const freq = recurringExpenseFrequencyLabel(row.frequency);
+  if (row.frequency === 'WEEKLY' && row.billingWeekday != null) {
+    const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    return `Cada ${days[row.billingWeekday]}`;
+  }
+  if (row.frequency === 'DAILY') return 'Diario';
+  if (row.frequency === 'QUINCENAL') return 'Días 15 y fin de mes';
+  if (row.frequency === 'ANNUAL' || row.frequency === 'SEMIANNUAL') {
+    const m = row.billingMonth != null ? ` · mes ${row.billingMonth}` : '';
+    return `Día ${row.billingDay} del mes${m} · ${freq}`;
+  }
+  return `Día ${row.billingDay} del mes · ${freq}`;
 }
 
 export type AdjustSubscriptionDialogProps = {
@@ -106,11 +122,7 @@ export function AdjustSubscriptionDialog({
               {row.account.name} · {row.category.name}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Día de cargo: {row.billingDay}
-              {row.frequency === 'ANNUAL' && row.billingMonth != null
-                ? ` · Mes ${row.billingMonth}`
-                : ''}{' '}
-              · {row.frequency === 'MONTHLY' ? 'Mensual' : 'Anual'}
+              {billingScheduleLine(row)}
             </Typography>
             <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} fullWidth disabled={submitting} />
             <TextField

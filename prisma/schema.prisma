@@ -86,7 +86,13 @@ enum RiskTolerance {
 
 /// Suscripción o cargo recurrente (ej. Netflix).
 enum RecurringExpenseFrequency {
+  DAILY
+  WEEKLY
+  /// Dos veces al mes (días 15 y último día civil).
+  QUINCENAL
   MONTHLY
+  /// Dos veces al año (mes indicado y +6 meses).
+  SEMIANNUAL
   ANNUAL
 }
 
@@ -280,10 +286,12 @@ model RecurringExpense {
   categoryId      String                    @map("category_id") @db.Uuid
   accountId       String                    @map("account_id") @db.Uuid
   frequency       RecurringExpenseFrequency
-  /// Día del mes (1–31); en meses cortos se usa el último día.
+  /// Día del mes (1–31); en meses cortos se usa el último día. No aplica a WEEKLY (usa `billingWeekday`).
   billingDay      Int                       @map("billing_day")
-  /// Mes 1–12; obligatorio para ANNUAL.
+  /// Mes 1–12; obligatorio para ANNUAL y SEMIANNUAL (mes ancla del ciclo).
   billingMonth    Int?                      @map("billing_month")
+  /// Día de la semana local 0=domingo … 6=sábado; solo WEEKLY.
+  billingWeekday  Int?                      @map("billing_weekday")
   lastConfirmedAt DateTime?                 @map("last_confirmed_at")
   isArchived      Boolean                   @default(false) @map("is_archived")
   createdAt       DateTime                  @default(now()) @map("created_at")
