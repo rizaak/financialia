@@ -1,42 +1,172 @@
-import { Box, Button, Stack, Typography } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  Grid,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material';
+import {
+  ArrowLeftRight,
+  CalendarClock,
+  Pencil,
+  Repeat,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { CategoryRow } from '../api/categoryTypes';
 import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
 import { fetchCategories } from '../api/fetchCategories';
-import { listTransactions, TRANSACTION_LIST_MAX } from '../api/fetchTransactions';
-import { CustomButton } from '../components/shared/CustomButton';
+import { fetchAllActiveInstallmentPlans } from '../api/fetchInstallmentPlansMgmt';
+import { fetchUpcomingCharges } from '../api/fetchRecurringExpenses';
+import { listTransactions, type TransactionWithCategory, TRANSACTION_LIST_MAX } from '../api/fetchTransactions';
+import { EditTransactionDialog } from '../components/shared/EditTransactionDialog';
+import { MsiRegisterDialog } from '../components/shared/MsiRegisterDialog';
+import { NewSubscriptionDialog } from '../components/shared/NewSubscriptionDialog';
 import { TransactionDialog, type TransactionDialogMode } from '../components/shared/TransactionDialog';
 import { buildExpenseCategoryUsageOrder } from '../lib/expenseCategoryUsage';
 import { formatDashboardLoadError } from '../lib/formatDashboardLoadError';
+import { formatMoney } from '../lib/formatMoney';
 import type { ShellOutletContext } from '../layouts/shellContext';
 
+function todayYmdLocal(): string {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+}
+
+function txDateYmd(occurredAt: string): string {
+  return occurredAt.slice(0, 10);
+}
+
+function daysInMonth(y: number, m0: number): number {
+  return new Date(y, m0 + 1, 0).getDate();
+}
+
+function isCreditCardMsiChargeToday(
+  account: AccountRow | undefined,
+  planCurrency: string,
+  defaultCur: string,
+): boolean {
+  if (!account || account.type !== 'CREDIT_CARD' || !account.creditCard) return false;
+  if (planCurrency.toUpperCase().slice(0, 3) !== defaultCur.toUpperCase().slice(0, 3)) return false;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m0 = now.getMonth();
+  const dom = now.getDate();
+  const closing = account.creditCard.closingDay;
+  const eff = Math.min(closing, daysInMonth(y, m0));
+  return dom === eff;
+}
+
+type FabDialog =
+  | { kind: 'transaction'; mode: TransactionDialogMode }
+  | { kind: 'msi' }
+  | { kind: 'subscription' }
+  | null;
+
+function RegisterStatMini({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <Box
+      sx={{
+        p: 2.5,
+        height: '100%',
+        borderRadius: '16px',
+        bgcolor: 'background.paper',
+        border: 1,
+        borderColor: 'divider',
+        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
+      }}
+    >
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Box sx={{ color: 'primary.main', display: 'flex', flexShrink: 0 }}>{icon}</Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 0.04 }}>
+            {label}
+          </Typography>
+          <Typography variant="h6" fontWeight={800} sx={{ mt: 0.75, lineHeight: 1.2 }}>
+            {value}
+          </Typography>
+          {hint ? (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              {hint}
+            </Typography>
+          ) : null}
+        </Box>
+      </Stack>
+    </Box>
+  );
+}
+
+const ACTION_CARD_SX = {
+  height: '100%',
+  borderRadius: '16px',
+  bgcolor: 'background.paper',
+  border: 1,
+  borderColor: 'divider',
+  boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
+  transition: 'box-shadow 0.2s, transform 0.15s',
+  '&:hover': {
+    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+  },
+} as const;
+
 export function RegisterPage() {
-  const { getAccessToken, configHint, defaultCurrency } = useOutletContext<ShellOutletContext>();
+  const { getAccessToken, configHint, defaultCurrency, notifyTransactionSaved } = useOutletContext<ShellOutletContext>();
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
+  const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [expenseCategoryUsageOrder, setExpenseCategoryUsageOrder] = useState<string[]>([]);
+  const [upcoming, setUpcoming] = useState<Awaited<ReturnType<typeof fetchUpcomingCharges>>>([]);
+  const [msiPlans, setMsiPlans] = useState<Awaited<ReturnType<typeof fetchAllActiveInstallmentPlans>>>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<TransactionDialogMode>('expense');
+  const [fabDialog, setFabDialog] = useState<FabDialog>(null);
+  const [editTx, setEditTx] = useState<TransactionWithCategory | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [rows, accs, txs] = await Promise.all([
+      const [rows, accs, txs, up, plans] = await Promise.all([
         fetchCategories(getAccessToken),
         fetchAccounts(getAccessToken),
         listTransactions(getAccessToken, TRANSACTION_LIST_MAX),
+        fetchUpcomingCharges(getAccessToken, 7),
+        fetchAllActiveInstallmentPlans(getAccessToken),
       ]);
       setCategories(rows);
       setAccounts(accs);
+      setTransactions(txs);
       setExpenseCategoryUsageOrder(buildExpenseCategoryUsageOrder(txs));
+      setUpcoming(up);
+      setMsiPlans(plans);
     } catch (e) {
       setCategories([]);
       setAccounts([]);
+      setTransactions([]);
       setExpenseCategoryUsageOrder([]);
+      setUpcoming([]);
+      setMsiPlans([]);
       setError(formatDashboardLoadError(e));
     } finally {
       setLoading(false);
@@ -47,73 +177,329 @@ export function RegisterPage() {
     void load();
   }, [load]);
 
-  function openDialog(mode: TransactionDialogMode) {
-    setDialogMode(mode);
-    setDialogOpen(true);
+  const cur = defaultCurrency.toUpperCase().slice(0, 3);
+  const todayYmd = useMemo(() => todayYmdLocal(), []);
+
+  const { expenseToday, incomeToday, upcomingTodayTotal } = useMemo(() => {
+    const txsToday = transactions.filter((t) => txDateYmd(t.occurredAt) === todayYmd);
+    let exp = 0;
+    let inc = 0;
+    for (const t of txsToday) {
+      if (t.type === 'EXPENSE') exp += Number(t.amount);
+      else if (t.type === 'INCOME') inc += Number(t.amount);
+    }
+
+    const subToday = upcoming
+      .filter((u) => u.daysFromToday === 0 && u.currency.toUpperCase().slice(0, 3) === cur)
+      .reduce((s, u) => s + Number(u.amount), 0);
+
+    let msiToday = 0;
+    const accountById = new Map(accounts.map((a) => [a.id, a]));
+    for (const p of msiPlans) {
+      if (p.currency.toUpperCase().slice(0, 3) !== cur) continue;
+      const acc = accountById.get(p.accountId);
+      if (isCreditCardMsiChargeToday(acc, p.currency, defaultCurrency)) {
+        msiToday += Number(p.monthlyAmount);
+      }
+    }
+
+    return {
+      expenseToday: exp,
+      incomeToday: inc,
+      upcomingTodayTotal: subToday + msiToday,
+    };
+  }, [transactions, todayYmd, upcoming, msiPlans, accounts, cur, defaultCurrency]);
+
+  const recentFive = useMemo(() => transactions.slice(0, 5), [transactions]);
+
+  function openTransaction(mode: TransactionDialogMode) {
+    setFabDialog({ kind: 'transaction', mode });
+  }
+
+  function afterMutation() {
+    notifyTransactionSaved();
+    void load();
+  }
+
+  function txTypeLabel(t: TransactionWithCategory): string {
+    if (t.type === 'EXPENSE') return 'Gasto';
+    if (t.type === 'INCOME') return 'Ingreso';
+    if (t.type === 'ADJUSTMENT') return 'Ajuste';
+    return t.type;
   }
 
   return (
-    <Box sx={{ maxWidth: 1120, mx: 'auto' }}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        alignItems={{ xs: 'stretch', sm: 'flex-end' }}
-        justifyContent="space-between"
-        gap={2}
-        sx={{ mb: 3 }}
-      >
-        <Box>
-          <Typography variant="overline" color="primary.main" fontWeight={700}>
-            Operaciones
-          </Typography>
-          <Typography variant="h4" component="h1" fontWeight={800}>
-            Registro
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Gastos, ingresos y transferencias con validación de saldo.
-          </Typography>
-        </Box>
-        <Button variant="outlined" onClick={() => void load()} disabled={loading}>
-          Actualizar
-        </Button>
-      </Stack>
+    <Box
+      sx={{
+        minHeight: '100%',
+        bgcolor: 'background.default',
+        py: { xs: 2, sm: 3 },
+        px: { xs: 1.5, sm: 2 },
+      }}
+    >
+      <Box sx={{ maxWidth: 1120, mx: 'auto' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'flex-end' }} justifyContent="space-between" gap={2} sx={{ mb: 3 }}>
+          <Box>
+            <Typography variant="overline" color="primary.main" fontWeight={700}>
+              Centro de operaciones
+            </Typography>
+            <Typography variant="h4" component="h1" fontWeight={800}>
+              Registro
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Acciones rápidas, resumen del día y últimos movimientos.
+            </Typography>
+          </Box>
+          <Button variant="outlined" onClick={() => void load()} disabled={loading}>
+            Actualizar
+          </Button>
+        </Stack>
 
-      {configHint}
+        {configHint}
 
-      {loading ? (
-        <Typography color="text.secondary">Cargando…</Typography>
-      ) : error ? (
-        <Box sx={{ borderRadius: 2, border: 1, borderColor: 'error.light', bgcolor: 'error.50', p: 2 }}>
-          <Typography color="error">{error}</Typography>
-        </Box>
-      ) : (
-        <>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-            <CustomButton operationVariant="expense" onClick={() => openDialog('expense')} fullWidth>
-              Nuevo gasto
-            </CustomButton>
-            <CustomButton operationVariant="income" onClick={() => openDialog('income')} fullWidth>
-              Nuevo ingreso
-            </CustomButton>
-            <CustomButton operationVariant="transfer" onClick={() => openDialog('transfer')} fullWidth>
-              Transferencia
-            </CustomButton>
-          </Stack>
+        {loading ? (
+          <Typography color="text.secondary">Cargando…</Typography>
+        ) : error ? (
+          <Box sx={{ borderRadius: '16px', border: 1, borderColor: 'error.light', bgcolor: 'error.50', p: 2 }}>
+            <Typography color="error">{error}</Typography>
+          </Box>
+        ) : (
+          <>
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <RegisterStatMini
+                  icon={<TrendingDown size={28} strokeWidth={2} />}
+                  label="Gastos del día"
+                  value={formatMoney(expenseToday, defaultCurrency)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <RegisterStatMini
+                  icon={<TrendingUp size={28} strokeWidth={2} />}
+                  label="Ingresos del día"
+                  value={formatMoney(incomeToday, defaultCurrency)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <RegisterStatMini
+                  icon={<Wallet size={28} strokeWidth={2} />}
+                  label="Próximos cargos (hoy)"
+                  value={formatMoney(upcomingTodayTotal, defaultCurrency)}
+                  hint="Suscripciones con cargo hoy + cuota MSI si hoy es día de corte (tarjeta)."
+                />
+              </Grid>
+            </Grid>
 
-          <TransactionDialog
-            open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
-            mode={dialogMode}
-            getAccessToken={getAccessToken}
-            categories={categories}
-            accounts={accounts}
-            defaultCurrency={defaultCurrency}
-            expenseCategoryUsageOrder={expenseCategoryUsageOrder}
-            onSaved={() => {
-              void load();
-            }}
-          />
-        </>
-      )}
+            <Typography variant="subtitle2" fontWeight={800} color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.06 }}>
+              Acciones rápidas
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 4 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Card elevation={0} sx={ACTION_CARD_SX}>
+                  <CardActionArea onClick={() => openTransaction('expense')} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
+                    <Stack spacing={1.25}>
+                      <Box sx={{ color: 'success.main' }}>
+                        <TrendingDown size={40} strokeWidth={2} />
+                      </Box>
+                      <Typography variant="h6" fontWeight={800}>
+                        Gasto
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Registra un gasto en cuenta o tarjeta con categoría y validación de saldo.
+                      </Typography>
+                    </Stack>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Card elevation={0} sx={ACTION_CARD_SX}>
+                  <CardActionArea onClick={() => openTransaction('income')} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
+                    <Stack spacing={1.25}>
+                      <Box sx={{ color: 'info.main' }}>
+                        <TrendingUp size={40} strokeWidth={2} />
+                      </Box>
+                      <Typography variant="h6" fontWeight={800}>
+                        Ingreso
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Registra un abono o ingreso en efectivo o cuenta.
+                      </Typography>
+                    </Stack>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Card elevation={0} sx={ACTION_CARD_SX}>
+                  <CardActionArea onClick={() => openTransaction('transfer')} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
+                    <Stack spacing={1.25}>
+                      <Box sx={{ color: 'secondary.main' }}>
+                        <ArrowLeftRight size={40} strokeWidth={2} />
+                      </Box>
+                      <Typography variant="h6" fontWeight={800}>
+                        Transferencia
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Mueve dinero entre tus cuentas en la misma moneda.
+                      </Typography>
+                    </Stack>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Card elevation={0} sx={ACTION_CARD_SX}>
+                  <CardActionArea onClick={() => setFabDialog({ kind: 'msi' })} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
+                    <Stack spacing={1.25}>
+                      <Box sx={{ color: 'warning.main' }}>
+                        <CalendarClock size={40} strokeWidth={2} />
+                      </Box>
+                      <Typography variant="h6" fontWeight={800}>
+                        Nuevo MSI
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Compra a meses sin intereses en tarjeta: monto total y plazo en mensualidades.
+                      </Typography>
+                    </Stack>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Card elevation={0} sx={ACTION_CARD_SX}>
+                  <CardActionArea onClick={() => setFabDialog({ kind: 'subscription' })} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
+                    <Stack spacing={1.25}>
+                      <Box sx={{ color: 'error.main' }}>
+                        <Repeat size={40} strokeWidth={2} />
+                      </Box>
+                      <Typography variant="h6" fontWeight={800}>
+                        Nueva suscripción
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Cargo recurrente: frecuencia, monto y día de cobro.
+                      </Typography>
+                    </Stack>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            </Grid>
+
+            <Box
+              sx={{
+                borderRadius: '16px',
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
+                overflow: 'hidden',
+              }}
+            >
+              <Box sx={{ px: 2.5, py: 2, borderBottom: 1, borderColor: 'divider' }}>
+                <Typography variant="subtitle1" fontWeight={800}>
+                  Actividad reciente
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Últimos 5 movimientos registrados
+                </Typography>
+              </Box>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: 'action.hover' }}>
+                      <TableCell>Fecha</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Concepto</TableCell>
+                      <TableCell>Categoría</TableCell>
+                      <TableCell align="right">Monto</TableCell>
+                      <TableCell align="right" width={100}>
+                        Acción
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {recentFive.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                            Aún no hay movimientos.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      recentFive.map((t) => (
+                        <TableRow key={t.id} hover>
+                          <TableCell sx={{ whiteSpace: 'nowrap' }}>{txDateYmd(t.occurredAt)}</TableCell>
+                          <TableCell>{txTypeLabel(t)}</TableCell>
+                          <TableCell sx={{ fontWeight: 600, maxWidth: 220 }}>{t.concept}</TableCell>
+                          <TableCell>{t.category?.name ?? '—'}</TableCell>
+                          <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {formatMoney(t.amount, t.currency)}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<Pencil size={16} />}
+                              onClick={() => setEditTx(t)}
+                            >
+                              Editar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+
+            {fabDialog?.kind === 'transaction' ? (
+              <TransactionDialog
+                open
+                onClose={() => setFabDialog(null)}
+                mode={fabDialog.mode}
+                getAccessToken={getAccessToken}
+                categories={categories}
+                accounts={accounts}
+                defaultCurrency={defaultCurrency}
+                expenseCategoryUsageOrder={expenseCategoryUsageOrder}
+                onSaved={afterMutation}
+              />
+            ) : null}
+            {fabDialog?.kind === 'msi' ? (
+              <MsiRegisterDialog
+                open
+                onClose={() => setFabDialog(null)}
+                getAccessToken={getAccessToken}
+                categories={categories}
+                accounts={accounts}
+                defaultCurrency={defaultCurrency}
+                expenseCategoryUsageOrder={expenseCategoryUsageOrder}
+                onSaved={afterMutation}
+              />
+            ) : null}
+            {fabDialog?.kind === 'subscription' ? (
+              <NewSubscriptionDialog
+                open
+                onClose={() => setFabDialog(null)}
+                getAccessToken={getAccessToken}
+                categories={categories}
+                accounts={accounts}
+                defaultCurrency={defaultCurrency}
+                onSaved={afterMutation}
+              />
+            ) : null}
+
+            <EditTransactionDialog
+              open={editTx != null}
+              onClose={() => setEditTx(null)}
+              transaction={editTx}
+              getAccessToken={getAccessToken}
+              accounts={accounts}
+              categories={categories}
+              defaultCurrency={defaultCurrency}
+              onSaved={afterMutation}
+            />
+          </>
+        )}
+      </Box>
     </Box>
   );
 }
