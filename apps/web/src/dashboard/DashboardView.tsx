@@ -1,6 +1,6 @@
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import { lazy, Suspense, useMemo, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useMemo, type ReactNode } from 'react';
 import { LogoVantix } from '../components/brand/LogoVantix';
 import { ChartFallback } from '../components/ChartFallback';
 import { SectionCard } from '../components/SectionCard';
@@ -71,6 +71,10 @@ export function DashboardView({
     enabled: dashboardReady,
   });
 
+  const onCommitmentsChanged = useCallback(async () => {
+    await useFinanceStore.getState().refreshBalancesAfterMutation(getAccessToken);
+  }, [getAccessToken]);
+
   return (
     <div className="mx-auto w-full max-w-6xl py-4">
       <Box
@@ -127,7 +131,11 @@ export function DashboardView({
           </div>
         ) : snapshot && periodSummary && accountsSummary && investmentsSummary ? (
           <>
-            <FreeCashFlowHighlight data={snapshot} />
+            <FreeCashFlowHighlight
+              data={snapshot}
+              getAccessToken={getAccessToken}
+              onCommitmentsChanged={onCommitmentsChanged}
+            />
             <BalanceSummaryCards data={snapshot} />
 
             <div className="col-span-12">

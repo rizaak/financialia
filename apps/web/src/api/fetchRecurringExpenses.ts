@@ -2,7 +2,25 @@ import { assertOk } from '../lib/http/assertOk';
 import type { CreateTransactionResponse } from './fetchTransactions';
 import { getApiBaseUrl } from './apiBaseUrl';
 
-export type RecurringFrequency = 'MONTHLY' | 'ANNUAL';
+export type RecurringFrequency =
+  | 'DAILY'
+  | 'WEEKLY'
+  | 'QUINCENAL'
+  | 'MONTHLY'
+  | 'SEMIANNUAL'
+  | 'ANNUAL';
+
+export function recurringExpenseFrequencyLabel(f: RecurringFrequency): string {
+  const labels: Record<RecurringFrequency, string> = {
+    DAILY: 'Diaria',
+    WEEKLY: 'Semanal',
+    QUINCENAL: 'Quincenal',
+    MONTHLY: 'Mensual',
+    SEMIANNUAL: 'Semestral',
+    ANNUAL: 'Anual',
+  };
+  return labels[f] ?? f;
+}
 
 export type UpcomingCharge = {
   id: string;
@@ -28,6 +46,8 @@ export type CreateRecurringExpenseBody = {
   billingDay: number;
   frequency: RecurringFrequency;
   billingMonth?: number;
+  /** 0=domingo … 6=sábado; solo WEEKLY. */
+  billingWeekday?: number;
   categoryId: string;
   accountId: string;
   currency?: string;
@@ -41,6 +61,7 @@ export type RecurringExpenseListRow = {
   frequency: RecurringFrequency;
   billingDay: number;
   billingMonth: number | null;
+  billingWeekday: number | null;
   isArchived: boolean;
   category: { id: string; name: string; slug: string };
   account: { id: string; name: string; type: string; currency: string };
@@ -52,6 +73,7 @@ export type PatchRecurringExpenseBody = {
   billingDay?: number;
   frequency?: RecurringFrequency;
   billingMonth?: number | null;
+  billingWeekday?: number | null;
   isArchived?: boolean;
 };
 

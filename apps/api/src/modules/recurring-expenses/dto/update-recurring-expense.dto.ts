@@ -31,13 +31,24 @@ export class UpdateRecurringExpenseDto {
   @IsEnum(RecurringExpenseFrequency)
   frequency?: RecurringExpenseFrequency;
 
-  @ValidateIf((o: UpdateRecurringExpenseDto) => o.frequency === RecurringExpenseFrequency.ANNUAL)
+  @ValidateIf(
+    (o: UpdateRecurringExpenseDto) =>
+      o.frequency === RecurringExpenseFrequency.ANNUAL ||
+      o.frequency === RecurringExpenseFrequency.SEMIANNUAL,
+  )
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(12)
   billingMonth?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  billingWeekday?: number | null;
 
   @IsOptional()
   @Type(() => Number)

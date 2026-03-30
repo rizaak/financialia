@@ -2,15 +2,19 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import SubscriptionsOutlinedIcon from '@mui/icons-material/SubscriptionsOutlined';
-import { Box, Card, CardContent, Divider, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Divider, Stack, Tooltip, Typography } from '@mui/material';
 import { Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import type { FreeCashFlowBreakdown } from '../api/fetchAccounts';
+import { CommitmentsManageDialog } from '../components/commitments/CommitmentsManageDialog';
 import { MoneyText } from '../components/shared/MoneyText';
 import type { DashboardDataSnapshot } from '../hooks/useDashboard';
 import { formatMoney } from '../lib/formatMoney';
 
 type Props = {
   data: DashboardDataSnapshot;
+  getAccessToken: () => Promise<string>;
+  onCommitmentsChanged: () => void | Promise<void>;
 };
 
 const deductionRows: Array<{
@@ -30,9 +34,10 @@ function isZeroish(s: string): boolean {
   return Number.isFinite(n) && Math.abs(n) < 0.005;
 }
 
-export function FreeCashFlowHighlight({ data }: Props) {
+export function FreeCashFlowHighlight({ data, getAccessToken, onCommitmentsChanged }: Props) {
   const cur = data.defaultCurrency;
   const b = data.freeCashFlowBreakdown;
+  const [manageOpen, setManageOpen] = useState(false);
 
   return (
     <Card
@@ -177,9 +182,19 @@ export function FreeCashFlowHighlight({ data }: Props) {
                 </Stack>
               ) : null}
               <Divider sx={{ borderStyle: 'dashed' }} />
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.03 }}>
-                Compromisos del mes
-              </Typography>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ flexWrap: 'wrap' }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  fontWeight={600}
+                  sx={{ textTransform: 'uppercase', letterSpacing: 0.03 }}
+                >
+                  Compromisos del mes
+                </Typography>
+                <Button size="small" variant="outlined" onClick={() => setManageOpen(true)} sx={{ flexShrink: 0 }}>
+                  Gestionar
+                </Button>
+              </Stack>
               {deductionRows.map(({ key, label }) => {
                 const raw = b[key];
                 const zero = isZeroish(raw);
@@ -210,6 +225,12 @@ export function FreeCashFlowHighlight({ data }: Props) {
           </Box>
         </Stack>
       </CardContent>
+      <CommitmentsManageDialog
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        getAccessToken={getAccessToken}
+        onChanged={onCommitmentsChanged}
+      />
     </Card>
   );
 }

@@ -1,12 +1,14 @@
 import { Fab, Menu, MenuItem, useTheme } from '@mui/material';
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { ArrowLeftRight, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeftRight, CalendarClock, Plus, Repeat, TrendingDown, TrendingUp } from 'lucide-react';
 import type { CategoryRow } from '../../api/categoryTypes';
 import { fetchAccounts, type AccountRow } from '../../api/fetchAccounts';
 import { fetchCategories } from '../../api/fetchCategories';
 import { listTransactions, TRANSACTION_LIST_MAX } from '../../api/fetchTransactions';
 import { buildExpenseCategoryUsageOrder } from '../../lib/expenseCategoryUsage';
 import { formatDashboardLoadError } from '../../lib/formatDashboardLoadError';
+import { MsiRegisterDialog } from '../shared/MsiRegisterDialog';
+import { NewSubscriptionDialog } from '../shared/NewSubscriptionDialog';
 import { TransactionDialog, type TransactionDialogMode } from '../shared/TransactionDialog';
 
 type Props = {
@@ -22,7 +24,12 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [expenseCategoryUsageOrder, setExpenseCategoryUsageOrder] = useState<string[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [dialogMode, setDialogMode] = useState<TransactionDialogMode | null>(null);
+  const [fabDialog, setFabDialog] = useState<
+    | { type: 'transaction'; mode: TransactionDialogMode }
+    | { type: 'msi' }
+    | { type: 'subscription' }
+    | null
+  >(null);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -55,16 +62,32 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
     setAnchorEl(null);
   }
 
-  function openDialog(mode: TransactionDialogMode) {
+  function openTransactionDialog(mode: TransactionDialogMode) {
     closeMenu();
     if (loadError && accounts.length === 0) {
       return;
     }
-    setDialogMode(mode);
+    setFabDialog({ type: 'transaction', mode });
+  }
+
+  function openMsiDialog() {
+    closeMenu();
+    if (loadError && accounts.length === 0) {
+      return;
+    }
+    setFabDialog({ type: 'msi' });
+  }
+
+  function openSubscriptionDialog() {
+    closeMenu();
+    if (loadError && accounts.length === 0) {
+      return;
+    }
+    setFabDialog({ type: 'subscription' });
   }
 
   function closeDialog() {
-    setDialogMode(null);
+    setFabDialog(null);
   }
 
   return (
@@ -95,7 +118,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
         }}
       >
         <MenuItem
-          onClick={() => openDialog('expense')}
+          onClick={() => openTransactionDialog('expense')}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
           <span className="mr-2 inline-flex text-emerald-700">
@@ -104,7 +127,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           Registrar gasto
         </MenuItem>
         <MenuItem
-          onClick={() => openDialog('income')}
+          onClick={() => openTransactionDialog('income')}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
           <span className="mr-2 inline-flex text-sky-700">
@@ -113,7 +136,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           Ingresar dinero
         </MenuItem>
         <MenuItem
-          onClick={() => openDialog('transfer')}
+          onClick={() => openTransactionDialog('transfer')}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
           <span className="mr-2 inline-flex text-violet-700">
@@ -121,18 +144,63 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           </span>
           Transferir entre cuentas
         </MenuItem>
+        <MenuItem
+          onClick={() => openMsiDialog()}
+          disabled={Boolean(loadError) && accounts.length === 0}
+        >
+          <span className="mr-2 inline-flex text-amber-700">
+            <CalendarClock size={18} />
+          </span>
+          Registrar MSI
+        </MenuItem>
+        <MenuItem
+          onClick={() => openSubscriptionDialog()}
+          disabled={Boolean(loadError) && accounts.length === 0}
+        >
+          <span className="mr-2 inline-flex text-rose-700">
+            <Repeat size={18} />
+          </span>
+          Nueva suscripción
+        </MenuItem>
       </Menu>
 
-      {dialogMode ? (
+      {fabDialog?.type === 'transaction' ? (
         <TransactionDialog
           open
           onClose={closeDialog}
-          mode={dialogMode}
+          mode={fabDialog.mode}
           getAccessToken={getAccessToken}
           categories={categories}
           accounts={accounts}
           defaultCurrency={defaultCurrency}
           expenseCategoryUsageOrder={expenseCategoryUsageOrder}
+          onSaved={async () => {
+            await load();
+          }}
+        />
+      ) : null}
+      {fabDialog?.type === 'msi' ? (
+        <MsiRegisterDialog
+          open
+          onClose={closeDialog}
+          getAccessToken={getAccessToken}
+          categories={categories}
+          accounts={accounts}
+          defaultCurrency={defaultCurrency}
+          expenseCategoryUsageOrder={expenseCategoryUsageOrder}
+          onSaved={async () => {
+            await load();
+          }}
+        />
+      ) : null}
+      {fabDialog?.type === 'subscription' ? (
+        <NewSubscriptionDialog
+          open
+          onClose={closeDialog}
+          getAccessToken={getAccessToken}
+          categories={categories}
+          accounts={accounts}
+          defaultCurrency={defaultCurrency}
           onSaved={async () => {
             await load();
           }}

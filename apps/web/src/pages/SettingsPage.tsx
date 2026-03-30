@@ -31,6 +31,7 @@ import { patchMe } from '../api/patchMe';
 import type { ShellOutletContext } from '../layouts/shellContext';
 import { isAuth0Configured } from '../lib/auth0Configured';
 import { normalizeDisplayCurrency, type DisplayCurrency } from '../lib/displayCurrency';
+import { ArchivedAccountsSettingsPanel } from '../settings/ArchivedAccountsSettingsPanel';
 import { RecurringIncomeSettingsPanel } from '../settings/RecurringIncomeSettingsPanel';
 import { usePrivacyStore } from '../stores/privacyStore';
 
@@ -55,7 +56,8 @@ const CURRENCIES: { value: DisplayCurrency; label: string }[] = [
 ];
 
 export function SettingsPage() {
-  const { getAccessToken, defaultCurrency, setDefaultCurrency } = useOutletContext<ShellOutletContext>();
+  const { getAccessToken, defaultCurrency, setDefaultCurrency, notifyTransactionSaved } =
+    useOutletContext<ShellOutletContext>();
 
   const hideBalances = usePrivacyStore((s) => s.hideBalances);
   const setHideBalances = usePrivacyStore((s) => s.setHideBalances);
@@ -98,6 +100,13 @@ export function SettingsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const h = window.location.hash.replace(/^#/, '');
+    if (h === 'elementos-archivados') {
+      setTab(4);
+    }
+  }, []);
 
   async function saveProfileSection() {
     if (!profile) return;
@@ -169,7 +178,7 @@ export function SettingsPage() {
         Configuración
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-        Perfil, ingresos fijos (nómina), seguridad y privacidad.
+        Perfil, ingresos fijos (nómina), elementos archivados, seguridad y privacidad.
       </Typography>
 
       {error ? (
@@ -190,6 +199,7 @@ export function SettingsPage() {
           <Tab label="Mis Ingresos Fijos" />
           <Tab label="Seguridad" />
           <Tab label="Privacidad" />
+          <Tab label="Elementos archivados" />
         </Tabs>
 
         <CardContent>
@@ -361,6 +371,13 @@ export function SettingsPage() {
                     label="Ocultar importes en pantalla"
                   />
                 </Stack>
+              </TabPanel>
+
+              <TabPanel value={tab} index={4}>
+                <ArchivedAccountsSettingsPanel
+                  getAccessToken={getAccessToken}
+                  notifyTransactionSaved={notifyTransactionSaved}
+                />
               </TabPanel>
             </>
           )}

@@ -259,6 +259,8 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', md: 'none' },
+            /** Por encima del AppBar (drawer+1) y del FAB (drawer+2): el input IA no tapa el menú. */
+            zIndex: (muiTheme) => muiTheme.zIndex.modal,
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_FULL },
           }}
         >

@@ -16,6 +16,7 @@ import { useOutletContext } from 'react-router-dom';
 import { fetchAllActiveInstallmentPlans, type InstallmentPlanCommitmentRow } from '../api/fetchInstallmentPlansMgmt';
 import {
   fetchRecurringExpensesList,
+  recurringExpenseFrequencyLabel,
   type RecurringExpenseListRow,
 } from '../api/fetchRecurringExpenses';
 import { AdjustInstallmentPlanDialog } from '../components/commitments/AdjustInstallmentPlanDialog';
@@ -25,7 +26,7 @@ import { formatDashboardLoadError } from '../lib/formatDashboardLoadError';
 import type { ShellOutletContext } from '../layouts/shellContext';
 
 function freqLabel(f: RecurringExpenseListRow['frequency']): string {
-  return f === 'MONTHLY' ? 'Mensual' : 'Anual';
+  return recurringExpenseFrequencyLabel(f);
 }
 
 export function CommitmentsPage() {
