@@ -47,6 +47,21 @@ export type FreeCashFlowBreakdown = {
 export class FinancialService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private baseCurrencyCode(user: { defaultCurrency: string | null }): string {
+    return (user.defaultCurrency ?? 'MXN').toUpperCase().slice(0, 3);
+  }
+
+  /** Evita RangeError de Intl si `timezone` no es IANA válida (datos viejos o bug de cliente). */
+  private safeTimezone(tz: string | null | undefined): string {
+    const t = (tz ?? 'UTC').trim() || 'UTC';
+    try {
+      new Intl.DateTimeFormat('en-CA', { timeZone: t }).format(new Date());
+      return t;
+    } catch {
+      return 'UTC';
+    }
+  }
+
   /**
    * Efectivo comprometido: suma de gastos `RecurringEvent` (activos) pendientes en el mes local.
    * Alias conceptual de `sumPendingExpenseRecurringEventsThisMonth`.
@@ -64,7 +79,7 @@ export class FinancialService {
       where: { id: userId },
       select: { defaultCurrency: true },
     });
-    const cur = user.defaultCurrency.toUpperCase().slice(0, 3);
+    const cur = this.baseCurrencyCode(user);
     const [bankAgg, pendingStr] = await Promise.all([
       this.prisma.account.aggregate({
         where: { userId, type: 'BANK', currency: cur },
@@ -90,8 +105,8 @@ export class FinancialService {
       where: { id: userId },
       select: { defaultCurrency: true, timezone: true },
     });
-    const cur = user.defaultCurrency.toUpperCase().slice(0, 3);
-    const tz = user.timezone ?? 'UTC';
+    const cur = this.baseCurrencyCode(user);
+    const tz = this.safeTimezone(user.timezone);
     const now = new Date();
 
     const rows = await this.prisma.recurringEvent.findMany({
@@ -118,7 +133,7 @@ export class FinancialService {
             amount: r.amount,
             lastProcessedDate: r.lastProcessedDate,
           },
-          r.category.slug,
+          r.category?.slug ?? '',
           tz,
           now,
         ),
@@ -136,8 +151,8 @@ export class FinancialService {
       where: { id: userId },
       select: { defaultCurrency: true, timezone: true },
     });
-    const cur = user.defaultCurrency.toUpperCase().slice(0, 3);
-    const tz = user.timezone ?? 'UTC';
+    const cur = this.baseCurrencyCode(user);
+    const tz = this.safeTimezone(user.timezone);
 
     const [bankAgg, tieredLiquidAgg, tieredFrozenAgg, msiAgg, recurringRows, recurringEventsExpensePendingStr] =
       await Promise.all([
@@ -178,7 +193,7 @@ export class FinancialService {
     let housingUtilitiesPending = new Prisma.Decimal(0);
 
     for (const re of recurringRows) {
-      const slug = re.category.slug.toLowerCase();
+      const slug = (re.category?.slug ?? '').toLowerCase();
       const isHousing = HOUSING_AND_UTILITY_SLUGS.has(slug);
       if (isHousing) {
         housingUtilitiesPending = housingUtilitiesPending.plus(housingOrUtilityStillDue(re, tz, now));
