@@ -154,7 +154,7 @@ export class AccountsService {
       where: { id: userId },
       select: { defaultCurrency: true },
     });
-    const cur = user.defaultCurrency.toUpperCase().slice(0, 3);
+    const cur = (user.defaultCurrency ?? 'MXN').toUpperCase().slice(0, 3);
 
     const [accounts, capitalRows] = await Promise.all([
       this.prisma.account.findMany({

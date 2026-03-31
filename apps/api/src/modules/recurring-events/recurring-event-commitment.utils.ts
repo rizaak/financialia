@@ -57,7 +57,7 @@ export function recurringEventExpenseRemainingInMonth(
     }
     const dim = daysInMonth(y, m);
     const amt = new Prisma.Decimal(re.amount);
-    const isHousing = HOUSING_AND_UTILITY_SLUGS.has(categorySlug.toLowerCase());
+    const isHousing = HOUSING_AND_UTILITY_SLUGS.has((categorySlug ?? '').toLowerCase());
     let total = new Prisma.Decimal(0);
     for (let day = 1; day <= dim; day++) {
       if (getLocalWeekdayInTz(tz, y, m, day) !== re.dayOfWeek) {
@@ -73,17 +73,14 @@ export function recurringEventExpenseRemainingInMonth(
     return total;
   }
 
+  const dom = re.daysOfMonth ?? [];
   const days =
-    re.daysOfMonth.length > 0
-      ? re.daysOfMonth
-      : re.dayOfMonth != null
-        ? [re.dayOfMonth]
-        : [];
+    dom.length > 0 ? dom : re.dayOfMonth != null ? [re.dayOfMonth] : [];
   if (days.length === 0) {
     return new Prisma.Decimal(0);
   }
 
-  const isHousing = HOUSING_AND_UTILITY_SLUGS.has(categorySlug.toLowerCase());
+  const isHousing = HOUSING_AND_UTILITY_SLUGS.has((categorySlug ?? '').toLowerCase());
   const amt = new Prisma.Decimal(re.amount);
   let total = new Prisma.Decimal(0);
 
