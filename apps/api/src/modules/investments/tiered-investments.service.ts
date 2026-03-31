@@ -430,7 +430,7 @@ export class TieredInvestmentsService {
       return inv;
     }
 
-    const tiers = this.mapTiers(inv.strategy.tiers);
+    const tiers = this.mapTiers(inv.strategy?.tiers ?? []);
     const blend = this.calculator.blendPrincipalAcrossTiers(Number(principal), tiers);
     const daily = new Prisma.Decimal(blend.dailyEstimatedEarnings.toFixed(8));
     if (daily.lte(0)) {
@@ -510,7 +510,7 @@ export class TieredInvestmentsService {
     for (const inv of list) {
       const p = new Prisma.Decimal(inv.principal);
       totalInv = totalInv.plus(p);
-      const tiers = this.mapTiers(inv.strategy.tiers);
+      const tiers = this.mapTiers(inv.strategy?.tiers ?? []);
       const blend = this.calculator.blendPrincipalAcrossTiers(Number(p), tiers);
       const dailyDec = new Prisma.Decimal(blend.dailyEstimatedEarnings.toFixed(8));
       projected24h = projected24h.plus(dailyDec);
@@ -551,7 +551,7 @@ export class TieredInvestmentsService {
       where: { id: userId },
       select: { defaultCurrency: true },
     });
-    const cur3 = userCur.defaultCurrency.toUpperCase().slice(0, 3);
+    const cur3 = (userCur.defaultCurrency ?? 'MXN').toUpperCase().slice(0, 3);
 
     const yieldAccounts = await this.prisma.account.findMany({
       where: {
@@ -636,7 +636,7 @@ export class TieredInvestmentsService {
       return;
     }
     const p = Number(inv.principal);
-    const tiers = this.mapTiers(inv.strategy.tiers);
+    const tiers = this.mapTiers(inv.strategy?.tiers ?? []);
     const blend = this.calculator.blendPrincipalAcrossTiers(p, tiers);
     await this.prisma.tieredInvestment.update({
       where: { id: investmentId },
