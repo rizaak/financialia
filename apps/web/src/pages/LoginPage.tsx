@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { VI_WELCOME } from '../config/brandConfig';
 
-/** Azul eléctrico Vantix (alineado con landing) */
-const VAN_BRAND = '#38bdf8';
+/** Acento Vi / Vidya (alineado con landing) */
+const VI_ACCENT = '#38bdf8';
 
 type Props = {
   children: ReactNode;
@@ -10,7 +11,7 @@ type Props = {
 
 /**
  * Contenedor de login con entrada suave (Auth0 redirect o futuro formulario local).
- * Mensaje de Van aparece 1s después de cargar (fade-in).
+ * Mensaje de Vi aparece 1s después de cargar (fade-in).
  */
 export function LoginPage({ children }: Props) {
   return (
@@ -23,8 +24,10 @@ export function LoginPage({ children }: Props) {
           className="relative z-10 w-full rounded-2xl border border-white/10 bg-zinc-900/85 px-4 py-3.5 text-center shadow-[0_12px_48px_rgba(0,0,0,0.5)] backdrop-blur-md"
         >
           <p className="relative z-10 text-sm leading-relaxed text-zinc-200">
-            ¡Hola! Soy <span style={{ color: VAN_BRAND }} className="font-bold">Van</span>. Ingresa para que sigamos
-            optimizando tu dinero.
+            <span style={{ color: VI_ACCENT }} className="font-semibold">
+              {VI_WELCOME}
+            </span>{' '}
+            Ingresa para que sigamos optimizando tu dinero.
           </p>
           <div
             className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2"

@@ -16,6 +16,7 @@ import {
   recurringExpenseFrequencyLabel,
   type RecurringExpenseListRow,
 } from '../../api/fetchRecurringExpenses';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { formatMoney } from '../../lib/formatMoney';
 
 function amountLabel(f: RecurringExpenseListRow['frequency']): string {
@@ -72,7 +73,7 @@ export function AdjustSubscriptionDialog({
       const tid = toast.loading('Cancelando suscripción…');
       try {
         await patchRecurringExpense(getAccessToken, row.id, { isArchived: true });
-        toast.success('Suscripción archivada', { id: tid });
+        toast.success(VI_SUCCESS_MESSAGE, { id: tid, description: 'Suscripción archivada.' });
         await onSaved();
         onClose();
       } catch (e) {
@@ -100,7 +101,7 @@ export function AdjustSubscriptionDialog({
     const tid = toast.loading('Guardando…');
     try {
       await patchRecurringExpense(getAccessToken, row.id, { name: n, amount: a });
-      toast.success('Suscripción actualizada', { id: tid });
+      toast.success(VI_SUCCESS_MESSAGE, { id: tid, description: 'Suscripción actualizada.' });
       await onSaved();
       onClose();
     } catch (e) {

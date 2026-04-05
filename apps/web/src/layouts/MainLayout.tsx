@@ -17,7 +17,8 @@ import { Bell, ChevronLeft, ChevronRight, Eye, EyeOff, Menu as MenuIcon } from '
 import { fetchMe } from '../api/fetchMe';
 import { fetchProfile } from '../api/fetchProfile';
 import { patchProfile } from '../api/patchProfile';
-import { LogoVantix } from '../components/brand/LogoVantix';
+import { LogoVidya } from '../components/brand/LogoVidya';
+import { APP_NAME } from '../config/brandConfig';
 import { MuiAccountMenu } from '../components/nav/MuiAccountMenu';
 import { SidebarNav } from '../components/nav/SidebarNav';
 import { SIDEBAR_NAV_ITEMS } from '../components/nav/sidebarNavConfig';
@@ -202,9 +203,12 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
                 order: 2,
               }}
             >
-              <LogoVantix size={28} />
-              <Typography variant="subtitle1" fontWeight={700}>
-                Vantix
+              <LogoVidya size={28} />
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 500, letterSpacing: '0.08em', fontFamily: 'inherit' }}
+              >
+                {APP_NAME}
               </Typography>
             </Box>
           ) : null}
@@ -333,7 +337,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
           }}
         >
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-            © 2026 Vantix. Todos los derechos reservados.
+            © {new Date().getFullYear()} {APP_NAME}. Todos los derechos reservados.
           </Typography>
           <VersionBadge />
         </Box>

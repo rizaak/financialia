@@ -1,15 +1,15 @@
 import { Box, Stack, Typography } from '@mui/material';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { VI_AVATAR_GRADIENT, VI_NAME } from '../../config/brandConfig';
 
 const electric = '#38bdf8';
-const purple = '#a78bfa';
 
 const MESSAGES = {
-  van1:
+  vi1:
     "Si mantienes tu gasto en comida debajo de $3,000, completarás tu meta de 'Vuelos' en 15 días. ¡Tú puedes!",
   user2: '¿Cuánto gané hoy en total?',
-  van2:
+  vi2:
     'Hoy tus inversiones generaron $18.50 mientras dormías. Tu rendimiento real ponderado subió un 0.2%.',
 } as const;
 
@@ -39,7 +39,7 @@ function TypingIndicator() {
   );
 }
 
-function VanAvatar() {
+function ViAvatar() {
   return (
     <Box
       sx={{
@@ -49,23 +49,25 @@ function VanAvatar() {
         flexShrink: 0,
         display: 'grid',
         placeItems: 'center',
-        background: `linear-gradient(145deg, ${electric} 0%, #2563eb 50%, ${purple} 100%)`,
+        background: VI_AVATAR_GRADIENT,
         boxShadow: `
-          0 0 0 1px rgba(56,189,248,0.35),
-          0 0 28px rgba(56,189,248,0.55),
-          0 0 56px rgba(56,189,248,0.25),
-          0 0 80px rgba(167,139,250,0.12)
+          0 0 0 1px rgba(91, 33, 182, 0.35),
+          0 0 28px rgba(37, 99, 235, 0.5),
+          0 0 56px rgba(37, 99, 235, 0.22),
+          0 0 80px rgba(109, 40, 217, 0.15)
         `,
       }}
     >
-      <Typography sx={{ fontWeight: 900, fontSize: '0.95rem', color: 'white', lineHeight: 1 }}>V</Typography>
+      <Typography sx={{ fontWeight: 900, fontSize: '0.8rem', color: 'white', lineHeight: 1, letterSpacing: '-0.02em' }}>
+        {VI_NAME}
+      </Typography>
     </Box>
   );
 }
 
 type BubbleProps = {
   children: ReactNode;
-  side: 'user' | 'van';
+  side: 'user' | 'assistant';
 };
 
 function ChatBubble({ children, side }: BubbleProps) {
@@ -77,9 +79,9 @@ function ChatBubble({ children, side }: BubbleProps) {
       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
       style={{ alignSelf: side === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}
     >
-      {side === 'van' ? (
+      {side === 'assistant' ? (
         <Stack direction="row" spacing={1.25} alignItems="flex-end">
-          <VanAvatar />
+          <ViAvatar />
           <Box
             sx={{
               px: 2,
@@ -118,7 +120,7 @@ function ChatBubble({ children, side }: BubbleProps) {
 }
 
 /**
- * Showcase del copiloto Van: chat simulado en marco tipo teléfono con typing y resplandor en avatar.
+ * Showcase del copiloto Vi: chat simulado en marco tipo teléfono con typing y resplandor en avatar.
  */
 export function VanShowcaseSection() {
   const reduce = !!useReducedMotion();
@@ -171,9 +173,9 @@ export function VanShowcaseSection() {
       >
         Conoce a{' '}
         <Box component="span" sx={{ color: electric, fontWeight: 800 }}>
-          Van
+          {VI_NAME}
         </Box>
-        : Tu Copiloto Financiero.
+        : Tu guía en Vidya.
       </Typography>
       <Typography
         textAlign="center"
@@ -188,7 +190,7 @@ export function VanShowcaseSection() {
       >
         Deja de adivinar.{' '}
         <Box component="span" sx={{ color: electric, fontWeight: 700 }}>
-          Van
+          {VI_NAME}
         </Box>{' '}
         analiza tus ingresos, gastos e inversiones para darte la respuesta exacta en segundos. Entre más le cuentas, más
         inteligente se vuelve tu panorama.
@@ -246,10 +248,10 @@ export function VanShowcaseSection() {
               background: 'linear-gradient(90deg, rgba(56,189,248,0.06) 0%, transparent 100%)',
             }}
           >
-            <VanAvatar />
+            <ViAvatar />
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: electric, letterSpacing: '-0.02em' }}>
-                Van
+                {VI_NAME}
               </Typography>
               <Typography variant="caption" sx={{ color: electric, fontWeight: 600, fontSize: '0.65rem' }}>
                 Copiloto financiero
@@ -272,7 +274,7 @@ export function VanShowcaseSection() {
               <ChatBubble side="user">
                 <>
                   <Box component="span" sx={{ color: electric, fontWeight: 800 }}>
-                    Van
+                    {VI_NAME}
                   </Box>
                   , ¿me alcanza para el viaje a la playa si ahorro este mes?
                 </>
@@ -285,7 +287,7 @@ export function VanShowcaseSection() {
               </Box>
             )}
 
-            {showV1 && <ChatBubble side="van">{MESSAGES.van1}</ChatBubble>}
+            {showV1 && <ChatBubble side="assistant">{MESSAGES.vi1}</ChatBubble>}
 
             {showU2 && <ChatBubble side="user">{MESSAGES.user2}</ChatBubble>}
 
@@ -295,7 +297,7 @@ export function VanShowcaseSection() {
               </Box>
             )}
 
-            {showV2 && <ChatBubble side="van">{MESSAGES.van2}</ChatBubble>}
+            {showV2 && <ChatBubble side="assistant">{MESSAGES.vi2}</ChatBubble>}
           </Box>
         </Box>
       </Box>

@@ -1,3 +1,4 @@
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Autocomplete,
@@ -16,18 +17,19 @@ import {
   Typography,
 } from '@mui/material';
 import { Banknote, Building2, CreditCard, Wallet } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import type { AccountRow } from '../../api/fetchAccounts';
 import type { CategoryRow } from '../../api/categoryTypes';
 import { createRecurringExpense } from '../../api/fetchRecurringExpenses';
 import { useTransaction } from '../../hooks/useTransaction';
 import { formatMoney } from '../../lib/formatMoney';
+import { parseMoneyInput } from '../../lib/parseMoneyInput';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import {
   buildSubscriptionFormSchema,
   type SubscriptionFormValues,
 } from '../../lib/transactionDialogSchemas';
-import { CustomButton } from './CustomButton';
 
 export type NewSubscriptionDialogProps = {
   open: boolean;
@@ -51,6 +53,34 @@ function defaultBillingDay(): number {
   const d = new Date().getDate();
   return Math.min(31, Math.max(1, d));
 }
+
+/** Inputs con fondo oscuro y borde azul al enfocar (modo oscuro). */
+const glassFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    bgcolor: 'rgba(255, 255, 255, 0.05)',
+    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.12)' },
+    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+    '&.Mui-focused:not(.Mui-error) fieldset': {
+      borderColor: '#3b82f6',
+      boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
+    },
+  },
+  '& .MuiInputLabel-root': { color: 'text.secondary' },
+} as const;
+
+const glassSelectSx = {
+  '& .MuiOutlinedInput-root': {
+    bgcolor: 'rgba(255, 255, 255, 0.05)',
+    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.12)' },
+    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+    '&.Mui-focused:not(.Mui-error) fieldset': {
+      borderColor: '#3b82f6',
+      boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
+    },
+  },
+  '& .MuiInputLabel-root': { color: 'text.secondary' },
+  '& .MuiSvgIcon-root': { color: 'text.secondary' },
+} as const;
 
 /**
  * Alta de suscripción recurrente: frecuencia de pago y día de cargo.
@@ -76,7 +106,6 @@ export function NewSubscriptionDialog({
     [categories],
   );
 
-  const now = new Date();
   const form = useForm<SubscriptionFormValues>({
     resolver: zodResolver(schema),
     mode: 'onChange',
@@ -84,10 +113,10 @@ export function NewSubscriptionDialog({
       name: '',
       accountId: '',
       categoryId: '',
-      amount: 0,
+      amount: '',
       billingDay: defaultBillingDay(),
       frequency: 'MONTHLY',
-      billingMonth: now.getMonth() + 1,
+      billingMonth: new Date().getMonth() + 1,
       billingWeekday: 1,
     },
   });
@@ -95,9 +124,25 @@ export function NewSubscriptionDialog({
   const {
     control,
     handleSubmit,
+    reset,
     watch,
     formState: { errors, isSubmitting, isValid },
   } = form;
+
+  useEffect(() => {
+    if (!open) return;
+    const d = new Date();
+    reset({
+      name: '',
+      accountId: '',
+      categoryId: '',
+      amount: '',
+      billingDay: defaultBillingDay(),
+      frequency: 'MONTHLY',
+      billingMonth: d.getMonth() + 1,
+      billingWeekday: 1,
+    });
+  }, [open, reset]);
 
   const frequency = watch('frequency');
 
@@ -105,11 +150,12 @@ export function NewSubscriptionDialog({
     const needsDayInMonth = ['MONTHLY', 'ANNUAL', 'SEMIANNUAL'].includes(values.frequency);
     const billingDay =
       needsDayInMonth ? values.billingDay : 1;
+    const amountNum = parseMoneyInput(values.amount);
     const result = await run(
       () =>
         createRecurringExpense(getAccessToken, {
           name: values.name.trim(),
-          amount: values.amount,
+          amount: amountNum,
           billingDay,
           frequency: values.frequency,
           billingMonth:
@@ -122,8 +168,8 @@ export function NewSubscriptionDialog({
         }),
       {
         loadingMessage: 'Creando suscripción…',
-        successMessage: '✅ Suscripción registrada',
-        successDescription: values.name.trim(),
+        successMessage: VI_SUCCESS_MESSAGE,
+        successDescription: `Suscripción: ${values.name.trim()}`,
       },
     );
     if (result !== undefined) {
@@ -179,6 +225,7 @@ export function NewSubscriptionDialog({
                 error={Boolean(errors.name)}
                 helperText={errors.name?.message}
                 fullWidth
+                sx={glassFieldSx}
               />
             )}
           />
@@ -213,6 +260,7 @@ export function NewSubscriptionDialog({
                     label="Cuenta de cargo"
                     error={Boolean(errors.accountId)}
                     helperText={errors.accountId?.message}
+                    sx={glassFieldSx}
                   />
                 )}
               />
@@ -235,6 +283,7 @@ export function NewSubscriptionDialog({
                     label="Categoría de gasto"
                     error={Boolean(errors.categoryId)}
                     helperText={errors.categoryId?.message}
+                    sx={glassFieldSx}
                   />
                 )}
               />
@@ -244,28 +293,60 @@ export function NewSubscriptionDialog({
           <Controller
             name="amount"
             control={control}
-            render={({ field }) => (
-              <TextField
-                type="number"
-                inputProps={{ step: '0.01', min: 0 }}
-                label="Monto por periodo"
-                error={Boolean(errors.amount)}
-                helperText={errors.amount?.message}
-                fullWidth
-                value={Number.isFinite(field.value) ? field.value : ''}
-                onChange={(e) => {
-                  const n = parseFloat(e.target.value);
-                  field.onChange(Number.isFinite(n) ? n : 0);
-                }}
-              />
-            )}
+            render={({ field }) => {
+              const hasErr = Boolean(errors.amount);
+              const amtStr = typeof field.value === 'string' ? field.value : '';
+              const hasTyping = amtStr.trim().length > 0;
+              return (
+                <TextField
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  label="Monto por periodo"
+                  placeholder="$0.00"
+                  error={hasErr}
+                  helperText={errors.amount?.message}
+                  fullWidth
+                  value={amtStr}
+                  onChange={(e) => {
+                    let v = e.target.value;
+                    v = v.replace(/,/g, '.');
+                    field.onChange(v);
+                  }}
+                  onFocus={(e) => {
+                    const el = e.target as HTMLInputElement;
+                    if (el.value === '') {
+                      requestAnimationFrame(() => el.setSelectionRange(0, 0));
+                    }
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'rgba(255, 255, 255, 0.05)',
+                      '& fieldset': {
+                        borderColor:
+                          hasTyping && !hasErr ? 'rgba(59, 130, 246, 0.55)' : 'rgba(255, 255, 255, 0.12)',
+                      },
+                      '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                      '&.Mui-focused:not(.Mui-error) fieldset': {
+                        borderColor: '#3b82f6',
+                        boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
+                      },
+                      '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': hasTyping
+                        ? { borderColor: 'rgba(59, 130, 246, 0.45)' }
+                        : {},
+                    },
+                    '& .MuiInputLabel-root': { color: 'text.secondary' },
+                  }}
+                />
+              );
+            }}
           />
 
           <Controller
             name="frequency"
             control={control}
             render={({ field }) => (
-              <FormControl fullWidth error={Boolean(errors.frequency)}>
+              <FormControl fullWidth error={Boolean(errors.frequency)} sx={glassSelectSx}>
                 <InputLabel id="sub-freq-label">Frecuencia de pago</InputLabel>
                 <Select labelId="sub-freq-label" label="Frecuencia de pago" {...field}>
                   <MenuItem value="DAILY">Diaria</MenuItem>
@@ -307,6 +388,7 @@ export function NewSubscriptionDialog({
                   error={Boolean(errors.billingDay)}
                   helperText={errors.billingDay?.message}
                   fullWidth
+                  sx={glassFieldSx}
                   value={Number.isFinite(field.value) ? field.value : ''}
                   onChange={(e) => {
                     const n = parseInt(e.target.value, 10);
@@ -322,7 +404,7 @@ export function NewSubscriptionDialog({
               name="billingWeekday"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={Boolean(errors.billingWeekday)}>
+                <FormControl fullWidth error={Boolean(errors.billingWeekday)} sx={glassSelectSx}>
                   <InputLabel id="sub-wd-label">Día de la semana del cargo</InputLabel>
                   <Select
                     labelId="sub-wd-label"
@@ -353,7 +435,7 @@ export function NewSubscriptionDialog({
               name="billingMonth"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={Boolean(errors.billingMonth)}>
+                <FormControl fullWidth error={Boolean(errors.billingMonth)} sx={glassSelectSx}>
                   <InputLabel id="sub-month-label">
                     {frequency === 'SEMIANNUAL' ? 'Mes de referencia (cada 6 meses)' : 'Mes del cobro anual'}
                   </InputLabel>
@@ -394,13 +476,52 @@ export function NewSubscriptionDialog({
             />
           ) : null}
 
-          <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ pt: 1 }}>
-            <Button type="button" onClick={() => form.reset()} color="inherit">
+          <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center" sx={{ pt: 1 }}>
+            <Button
+              type="button"
+              onClick={() =>
+                reset({
+                  name: '',
+                  accountId: '',
+                  categoryId: '',
+                  amount: '',
+                  billingDay: defaultBillingDay(),
+                  frequency: 'MONTHLY',
+                  billingMonth: new Date().getMonth() + 1,
+                  billingWeekday: 1,
+                })
+              }
+              color="inherit"
+              variant="text"
+              size="small"
+              sx={{ fontWeight: 500, color: 'text.secondary', textTransform: 'none', minWidth: 'auto' }}
+            >
               Limpiar
             </Button>
-            <CustomButton type="submit" operationVariant="expense" disabled={!isValid || isSubmitting}>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!isValid || isSubmitting}
+              startIcon={<NotificationsActiveIcon />}
+              sx={{
+                fontWeight: 700,
+                textTransform: 'none',
+                px: 2.5,
+                background: 'linear-gradient(145deg, #3b82f6 0%, #2563eb 100%)',
+                color: '#fff',
+                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.45)',
+                '&:hover': {
+                  background: 'linear-gradient(145deg, #60a5fa 0%, #3b82f6 100%)',
+                  boxShadow: '0 6px 20px rgba(59, 130, 246, 0.5)',
+                },
+                '&.Mui-disabled': {
+                  background: 'action.disabledBackground',
+                  color: 'action.disabled',
+                },
+              }}
+            >
               Guardar suscripción
-            </CustomButton>
+            </Button>
           </Stack>
         </Stack>
       </DialogContent>

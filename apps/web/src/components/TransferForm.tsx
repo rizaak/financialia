@@ -13,6 +13,7 @@ import {
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
 import { useTransactions } from '../hooks/useTransactions';
+import { VI_SUCCESS_MESSAGE } from '../config/brandConfig';
 import { formatMoney } from '../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../lib/localCalendarRange';
 import {
@@ -130,9 +131,11 @@ export function TransferForm({ getAccessToken, onSaved, defaultCurrency }: Props
         },
         {
           loadingMessage: 'Procesando transferencia…',
-          successMessage: `💸 Transferencia de ${amountLabel} realizada correctamente`,
+          successMessage: VI_SUCCESS_MESSAGE,
           successDescription:
-            fromAccount && toAccount ? `${fromAccount.name} → ${toAccount.name}` : undefined,
+            fromAccount && toAccount
+              ? `Transferencia de ${amountLabel}: ${fromAccount.name} → ${toAccount.name}`
+              : `Transferencia de ${amountLabel} realizada correctamente.`,
         },
       );
       if (result !== undefined) {

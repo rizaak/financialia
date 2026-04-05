@@ -1,7 +1,8 @@
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { Box, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { lazy, Suspense, useCallback, useMemo, type ReactNode } from 'react';
-import { LogoVantix } from '../components/brand/LogoVantix';
+import { LogoVidya } from '../components/brand/LogoVidya';
+import { APP_NAME } from '../config/brandConfig';
 import { ChartFallback } from '../components/ChartFallback';
 import { SectionCard } from '../components/SectionCard';
 import { StatCard } from '../components/StatCard';
@@ -90,7 +91,7 @@ export function DashboardView({
       >
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-            <LogoVantix size={44} aria-label="Vantix" />
+            <LogoVidya size={44} aria-label={APP_NAME} />
           </Box>
           <Box component="h1" sx={{ typography: 'h4', fontWeight: 800 }}>
             Tu panorama

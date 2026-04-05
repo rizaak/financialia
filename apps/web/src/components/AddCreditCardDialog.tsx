@@ -17,6 +17,7 @@ import { CreditCard } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { createAccount } from '../api/fetchAccounts';
+import { APP_NAME, VI_SUCCESS_MESSAGE } from '../config/brandConfig';
 
 const CLOSING_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
@@ -27,15 +28,6 @@ export type AddCreditCardDialogProps = {
   defaultCurrency: string;
   onCreated: () => void | Promise<void>;
 };
-
-/** Extrae 1–60 de "20", "20 días después del corte", etc. */
-function parseDaysAfterClosing(raw: string): number | null {
-  const m = raw.trim().match(/(\d+)/);
-  if (!m) return null;
-  const n = Number(m[1]);
-  if (!Number.isFinite(n) || n < 1 || n > 60) return null;
-  return n;
-}
 
 /**
  * Acepta 45, 45%, 0.45 → decimal anual para API (0–5).
@@ -66,8 +58,9 @@ export function AddCreditCardDialog({
   const [alias, setAlias] = useState('');
   const [creditLimit, setCreditLimit] = useState('');
   const [closingDay, setClosingDay] = useState<number>(15);
-  const [paymentDaysText, setPaymentDaysText] = useState('20 días después del corte');
-  const [catText, setCatText] = useState('45');
+  /** Días naturales después del corte hasta la fecha límite de pago (1–60). */
+  const [paymentDueDays, setPaymentDueDays] = useState<number | ''>(20);
+  const [catText, setCatText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,8 +69,8 @@ export function AddCreditCardDialog({
     setAlias('');
     setCreditLimit('');
     setClosingDay(15);
-    setPaymentDaysText('20 días después del corte');
-    setCatText('45');
+    setPaymentDueDays(20);
+    setCatText('');
     setError(null);
   }, [open]);
 
@@ -97,8 +90,8 @@ export function AddCreditCardDialog({
       setError('Indica un límite de crédito válido (≥ 0).');
       return;
     }
-    const dueDays = parseDaysAfterClosing(paymentDaysText);
-    if (dueDays == null) {
+    const dueDays = paymentDueDays === '' ? NaN : Number(paymentDueDays);
+    if (!Number.isFinite(dueDays) || dueDays < 1 || dueDays > 60) {
       setError('Indica cuántos días después del corte vence el pago (número entre 1 y 60).');
       return;
     }
@@ -121,7 +114,7 @@ export function AddCreditCardDialog({
         paymentDueDaysAfterClosing: dueDays,
         annualInterestRatePct: annual,
       });
-      toast.success(`Tarjeta “${name}” registrada`, { id });
+      toast.success(VI_SUCCESS_MESSAGE, { id, description: `Tarjeta “${name}” registrada.` });
       onClose();
       await onCreated();
     } catch (e) {
@@ -194,28 +187,51 @@ export function AddCreditCardDialog({
             </Select>
           </FormControl>
           <TextField
-            label="Día límite de pago"
-            placeholder="20 días después del corte"
-            value={paymentDaysText}
-            onChange={(e) => setPaymentDaysText(e.target.value)}
+            label="Días hasta el pago (después del corte)"
+            type="number"
+            placeholder="Ej. 20 días después del corte"
+            value={paymentDueDays}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === '') {
+                setPaymentDueDays('');
+                return;
+              }
+              const n = Number(v);
+              if (Number.isFinite(n)) {
+                setPaymentDueDays(n);
+              }
+            }}
+            onBlur={() => {
+              if (paymentDueDays === '' || !Number.isFinite(paymentDueDays)) {
+                setPaymentDueDays(20);
+                return;
+              }
+              if (paymentDueDays < 1) {
+                setPaymentDueDays(1);
+              } else if (paymentDueDays > 60) {
+                setPaymentDueDays(60);
+              }
+            }}
             fullWidth
             required
             disabled={submitting}
-            helperText="Escribe el número de días naturales después del corte (ej. 20 o el texto sugerido)."
+            inputProps={{ min: 1, max: 60, step: 1 }}
+            helperText="Número de días naturales entre el corte y la fecha límite de pago (1–60)."
           />
           <TextField
             label="Tasa de interés anual (CAT)"
-            placeholder="Ej. 45%"
+            placeholder="Ej. 45% o 0.45"
             value={catText}
             onChange={(e) => setCatText(e.target.value)}
             fullWidth
             required
             disabled={submitting}
-            helperText="Puedes escribir 45, 45% o 0.45 (45% anual)."
+            helperText="Ejemplo: 45, 45% o 0.45 para 45% anual."
           />
 
           <Alert severity="info" sx={{ borderRadius: 2 }}>
-            Vantix no realiza pagos automáticos. Usa estos datos para recordarte cuándo pagar en tu app bancaria.
+            {APP_NAME} no realiza pagos automáticos. Usa estos datos para recordarte cuándo pagar en tu app bancaria.
           </Alert>
 
           {error ? <Alert severity="error">{error}</Alert> : null}

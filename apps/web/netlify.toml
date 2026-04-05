@@ -1,4 +1,4 @@
-# SPA: el workspace correcto es @vantix/web (no @financial-ia/web; ese nombre no existe).
+# SPA: el workspace correcto es @vidya/web (no @financial-ia/web; ese nombre no existe).
 # Build desde la raíz del monorepo: npm install en la raíz resuelve workspaces.
 #
 # En el panel de Netlify, deja "Base directory" vacío (raíz del repo) o alinea el comando con esto.

@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material';
+import { APP_NAME } from '../../config/brandConfig';
 import { APP_VERSION } from '../../lib/appVersion';
 
 /**
@@ -30,7 +31,7 @@ export function VersionBadge() {
           lineHeight: 1.2,
         }}
       >
-        Vantix v{APP_VERSION}
+        {APP_NAME} v{APP_VERSION}
       </Typography>
     </Box>
   );

@@ -1,3 +1,4 @@
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Autocomplete,
@@ -12,18 +13,19 @@ import {
   Typography,
 } from '@mui/material';
 import { Banknote, Building2, CreditCard, Wallet } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import type { AccountRow } from '../../api/fetchAccounts';
 import type { CategoryRow } from '../../api/categoryTypes';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { useTransactions } from '../../hooks/useTransactions';
 import { formatMoney } from '../../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../../lib/localCalendarRange';
+import { parseMoneyInput } from '../../lib/parseMoneyInput';
 import {
   buildMsiExpenseSchema,
   type MsiExpenseFormValues,
 } from '../../lib/transactionDialogSchemas';
-import { CustomButton } from './CustomButton';
 
 export type MsiRegisterDialogProps = {
   open: boolean;
@@ -97,7 +99,7 @@ export function MsiRegisterDialog({
     defaultValues: {
       accountId: '',
       categoryId: '',
-      amount: 0,
+      amount: '',
       concept: '',
       notes: '',
       occurredAt: todayInputDate(),
@@ -108,17 +110,32 @@ export function MsiRegisterDialog({
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting, isValid },
   } = form;
 
+  useEffect(() => {
+    if (!open) return;
+    reset({
+      accountId: '',
+      categoryId: '',
+      amount: '',
+      concept: '',
+      notes: '',
+      occurredAt: todayInputDate(),
+      totalInstallments: 12,
+    });
+  }, [open, reset]);
+
   async function onSubmit(values: MsiExpenseFormValues) {
+    const amountNum = parseMoneyInput(values.amount);
     const acc = creditCards.find((a) => a.id === values.accountId);
     const result = await postTransaction(
       {
         accountId: values.accountId,
         categoryId: values.categoryId,
         type: 'EXPENSE',
-        amount: values.amount,
+        amount: amountNum,
         concept: values.concept.trim(),
         notes: values.notes?.trim() || undefined,
         occurredAt: localDateInputToIsoMidday(values.occurredAt),
@@ -129,8 +146,8 @@ export function MsiRegisterDialog({
       },
       {
         loadingMessage: 'Registrando compra MSI…',
-        successMessage: `✅ MSI registrado (${values.totalInstallments} meses)`,
-        successDescription: acc ? `${acc.name} · ${values.concept.trim()}` : values.concept.trim(),
+        successMessage: VI_SUCCESS_MESSAGE,
+        successDescription: `MSI ${values.totalInstallments} meses${acc ? ` · ${acc.name}` : ''} · ${values.concept.trim()}`,
       },
     );
     if (result !== undefined) {
@@ -256,21 +273,47 @@ export function MsiRegisterDialog({
           <Controller
             name="amount"
             control={control}
-            render={({ field }) => (
-              <TextField
-                type="number"
-                inputProps={{ step: '0.01', min: 0 }}
-                label="Monto total de la compra"
-                error={Boolean(errors.amount)}
-                helperText={errors.amount?.message}
-                fullWidth
-                value={Number.isFinite(field.value) ? field.value : ''}
-                onChange={(e) => {
-                  const n = parseFloat(e.target.value);
-                  field.onChange(Number.isFinite(n) ? n : 0);
-                }}
-              />
-            )}
+            render={({ field }) => {
+              const hasErr = Boolean(errors.amount);
+              const amtStr = typeof field.value === 'string' ? field.value : '';
+              const hasTyping = amtStr.trim().length > 0;
+              return (
+                <TextField
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  label="Monto total de la compra"
+                  placeholder="$0.00"
+                  error={hasErr}
+                  helperText={errors.amount?.message}
+                  fullWidth
+                  value={amtStr}
+                  onChange={(e) => {
+                    let v = e.target.value;
+                    v = v.replace(/,/g, '.');
+                    field.onChange(v);
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      ...(hasTyping && !hasErr
+                        ? {
+                            '& fieldset': {
+                              borderColor: 'rgba(59, 130, 246, 0.55)',
+                            },
+                          }
+                        : {}),
+                      '&.Mui-focused:not(.Mui-error) fieldset': {
+                        borderColor: '#3b82f6',
+                        boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
+                      },
+                      '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': hasTyping
+                        ? { borderColor: 'rgba(59, 130, 246, 0.45)' }
+                        : {},
+                    },
+                  }}
+                />
+              );
+            }}
           />
 
           <Controller
@@ -298,13 +341,51 @@ export function MsiRegisterDialog({
               <TextField {...field} type="date" label="Fecha de compra" InputLabelProps={{ shrink: true }} fullWidth />
             )}
           />
-          <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ pt: 1 }}>
-            <Button type="button" onClick={() => form.reset()} color="inherit">
+          <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center" sx={{ pt: 1 }}>
+            <Button
+              type="button"
+              onClick={() =>
+                reset({
+                  accountId: '',
+                  categoryId: '',
+                  amount: '',
+                  concept: '',
+                  notes: '',
+                  occurredAt: todayInputDate(),
+                  totalInstallments: 12,
+                })
+              }
+              color="inherit"
+              variant="text"
+              size="small"
+              sx={{ fontWeight: 500, color: 'text.secondary', textTransform: 'none', minWidth: 'auto' }}
+            >
               Limpiar
             </Button>
-            <CustomButton type="submit" operationVariant="expense" disabled={!isValid || isSubmitting}>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!isValid || isSubmitting}
+              startIcon={<CheckCircleOutlineIcon />}
+              sx={{
+                fontWeight: 700,
+                textTransform: 'none',
+                px: 2.5,
+                background: 'linear-gradient(145deg, #3b82f6 0%, #2563eb 100%)',
+                color: '#fff',
+                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.45)',
+                '&:hover': {
+                  background: 'linear-gradient(145deg, #60a5fa 0%, #3b82f6 100%)',
+                  boxShadow: '0 6px 20px rgba(59, 130, 246, 0.5)',
+                },
+                '&.Mui-disabled': {
+                  background: 'action.disabledBackground',
+                  color: 'action.disabled',
+                },
+              }}
+            >
               Registrar MSI
-            </CustomButton>
+            </Button>
           </Stack>
         </Stack>
       </DialogContent>

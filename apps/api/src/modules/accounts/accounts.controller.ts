@@ -52,7 +52,7 @@ export class AccountsController {
     @Param('accountId') accountId: string,
     @Body() dto: UpdateAccountDto,
   ) {
-    return this.accounts.updateStatus(userId, accountId, dto.status);
+    return this.accounts.updateAccount(userId, accountId, dto);
   }
 
   @Patch(':accountId/yield')

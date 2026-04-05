@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { fetchMe, type MeResponse } from '../api/fetchMe';
 import { SectionCard } from '../components/SectionCard';
+import { APP_NAME } from '../config/brandConfig';
 import type { ShellOutletContext } from '../layouts/shellContext';
 
 export function ProfilePage() {
@@ -63,7 +64,7 @@ export function ProfilePage() {
       </SectionCard>
 
       <div className="mt-6">
-        <SectionCard title="Tu perfil" subtitle="Datos guardados en Vantix">
+        <SectionCard title="Tu perfil" subtitle={`Datos guardados en ${APP_NAME}`}>
           {loading ? (
             <p className="text-sm text-zinc-500">Cargando…</p>
           ) : error ? (

@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { reconcileAccount, type AccountRow } from '../../api/fetchAccounts';
+import { APP_NAME, VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { formatMoney } from '../../lib/formatMoney';
 
 export type AdjustBalanceDialogProps = {
@@ -34,7 +35,8 @@ export function AdjustBalanceDialog({
 
   useEffect(() => {
     if (!open || !account) return;
-    setValue(String(Number(account.balance)));
+    const b = Number(account.balance);
+    setValue(b === 0 && Number.isFinite(b) ? '' : String(b));
   }, [open, account]);
 
   const cur = account?.currency ?? 'MXN';
@@ -59,9 +61,15 @@ export function AdjustBalanceDialog({
     try {
       const r = await reconcileAccount(getAccessToken, account.id, parsedTarget);
       if (r.skipped) {
-        toast.success('Sin diferencia con el saldo registrado.', { id: tid });
+        toast.success(VI_SUCCESS_MESSAGE, {
+          id: tid,
+          description: 'Sin diferencia con el saldo registrado.',
+        });
       } else {
-        toast.success('Ajuste registrado. El saldo coincide con tu realidad.', { id: tid });
+        toast.success(VI_SUCCESS_MESSAGE, {
+          id: tid,
+          description: 'Ajuste registrado. El saldo coincide con tu realidad.',
+        });
       }
       await onSuccess();
       onClose();
@@ -125,8 +133,8 @@ export function AdjustBalanceDialog({
           </Typography>
         ) : null}
         <Alert severity="warning" sx={{ mt: 2 }}>
-          Se creará una transacción automática de tipo <strong>Ajuste</strong> para alinear el saldo de Vantix con el
-          valor que indiques.
+          Se creará una transacción automática de tipo <strong>Ajuste</strong> para alinear el saldo de {APP_NAME} con
+          el valor que indiques.
         </Alert>
       </DialogContent>
       <DialogActions>

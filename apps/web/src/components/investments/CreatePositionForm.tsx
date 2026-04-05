@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { createPosition } from '../../api/fetchInvestments';
 import type { InvestmentsOverview } from '../../api/investmentsTypes';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { useTransaction } from '../../hooks/useTransaction';
 import { Spinner } from '../ui/spinner';
 
@@ -98,8 +99,8 @@ export function CreatePositionForm({ portfolios, getAccessToken, onSaved }: Prop
           }),
         {
           loadingMessage: 'Registrando posición…',
-          successMessage: '✅ Inversión registrada',
-          successDescription: `${lbl} · ${pfName}`,
+          successMessage: VI_SUCCESS_MESSAGE,
+          successDescription: `Inversión registrada: ${lbl} · ${pfName}`,
         },
       );
       if (result !== undefined) {

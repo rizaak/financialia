@@ -1,11 +1,11 @@
 import { Box, Stack, Typography } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
+import { VI_AVATAR_GRADIENT, VI_AVATAR_GRADIENT_SOFT, VI_WELCOME } from '../../config/brandConfig';
 
-const electric = '#38bdf8';
-const purple = '#a78bfa';
+const accent = '#38bdf8';
 
 /**
- * Copiloto Van: franja superior con avatar con pulso de energía y saludo.
+ * Copiloto Vi: franja superior con avatar con pulso y saludo.
  */
 export function VanAssistant() {
   const reduce = useReducedMotion();
@@ -35,7 +35,7 @@ export function VanAssistant() {
                 position: 'absolute',
                 inset: -6,
                 borderRadius: '50%',
-                background: `linear-gradient(135deg, ${electric}, ${purple})`,
+                background: VI_AVATAR_GRADIENT_SOFT,
               }}
               animate={{
                 scale: [1, 1.2, 1],
@@ -54,16 +54,17 @@ export function VanAssistant() {
               width: 48,
               height: 48,
               borderRadius: '50%',
-              background: `linear-gradient(145deg, ${electric} 0%, #2563eb 50%, ${purple} 100%)`,
+              background: VI_AVATAR_GRADIENT,
               display: 'grid',
               placeItems: 'center',
-              fontWeight: 900,
+              fontWeight: 800,
               color: 'white',
-              fontSize: '1.05rem',
-              boxShadow: `0 0 28px ${electric}55, 0 0 0 1px rgba(255,255,255,0.12)`,
+              fontSize: '0.8rem',
+              letterSpacing: '-0.02em',
+              boxShadow: '0 0 28px rgba(37, 99, 235, 0.45), 0 0 0 1px rgba(255,255,255,0.12)',
             }}
           >
-            V
+            Vi
           </Box>
         </Box>
         <Typography
@@ -75,8 +76,8 @@ export function VanAssistant() {
             fontSize: { xs: '0.875rem', sm: '0.9375rem' },
           }}
         >
-          <Box component="span" sx={{ color: electric, fontWeight: 700 }}>
-            Hola, soy Van.
+          <Box component="span" sx={{ color: accent, fontWeight: 700 }}>
+            {VI_WELCOME}
           </Box>{' '}
           ¿En qué optimizamos hoy?
         </Typography>

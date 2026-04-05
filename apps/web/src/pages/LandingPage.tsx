@@ -9,7 +9,8 @@ import {
 import { useCallback, useRef, useState } from 'react';
 import { Lock, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { LogoVantix } from '../components/brand/LogoVantix';
+import { LogoVidya } from '../components/brand/LogoVidya';
+import { APP_NAME } from '../config/brandConfig';
 import {
   Illustration360,
   IllustrationGrowth,
@@ -66,7 +67,7 @@ const threePillars = [
   {
     title: 'Paz mental',
     body:
-      "Calculamos tu 'Disponible Real' restando tus deudas y compromisos futuros. Si Vantix dice que puedes, es porque realmente puedes.",
+      `Calculamos tu 'Disponible Real' restando tus deudas y compromisos futuros. Si ${APP_NAME} dice que puedes, es porque realmente puedes.`,
   },
 ] as const;
 
@@ -239,8 +240,8 @@ export function LandingPage() {
               }}
             >
               <Link to="/" className="flex items-center gap-2 no-underline text-inherit">
-                <LogoVantix size={40} />
-                <span className="text-lg font-bold tracking-tight text-white">Vantix</span>
+                <LogoVidya size={40} />
+                <span className="text-lg font-medium tracking-[0.08em] text-white">{APP_NAME}</span>
               </Link>
               <Button
                 component={Link}
@@ -396,7 +397,8 @@ export function LandingPage() {
                         fontSize: { xs: '1.15rem', sm: '1.35rem', md: '1.5rem' },
                       }}
                     >
-                      Tus rendimientos ya existen en tus cuentas y cajitas. Vantix los concentra para que veas el impacto real, sin saltar entre apps.
+                      Tus rendimientos ya existen en tus cuentas y cajitas. {APP_NAME} los concentra para que veas el
+                      impacto real, sin saltar entre apps.
                     </Typography>
                   </FadeInView>
                   <FadeInView delay={0.08}>
@@ -410,7 +412,7 @@ export function LandingPage() {
           </Container>
         </Box>
 
-        {/* Por qué Vantix — tres pilares */}
+        {/* Por qué Vidya — tres pilares */}
         <Box component="section" sx={{ py: { xs: 7, md: 10 } }}>
           <Container maxWidth="lg">
             <FadeInView>
@@ -419,7 +421,7 @@ export function LandingPage() {
                 textAlign="center"
                 sx={{ display: 'block', letterSpacing: 0.16, fontWeight: 700, color: electric, mb: 1.5 }}
               >
-                Por qué Vantix
+                {`Por qué ${APP_NAME}`}
               </Typography>
             </FadeInView>
             <FadeInView delay={0.06}>
@@ -534,8 +536,8 @@ export function LandingPage() {
                   color="grey.400"
                   sx={{ mt: 2, maxWidth: 640, mx: 'auto', lineHeight: 1.75 }}
                 >
-                  Tener un 13% aquí y un 15% allá no es una estrategia, es desorden. Vantix concentra toda tu información
-                  para mostrarte la ganancia real neta que obtienes día a día.
+                  Tener un 13% aquí y un 15% allá no es una estrategia, es desorden. {APP_NAME} concentra toda tu
+                  información para mostrarte la ganancia real neta que obtienes día a día.
                 </Typography>
               </Box>
             </FadeInView>
@@ -602,7 +604,7 @@ export function LandingPage() {
                 sx={{ lineHeight: 1.8, maxWidth: 720, mx: 'auto', fontSize: { xs: '0.95rem', md: '1rem' } }}
               >
                 Entre más información proporcionas, más nítida es tu visión. Registra tus MSI, tus apartados en cajitas y
-                tus inversiones a plazo para que Vantix pueda construir tu mapa financiero exacto.
+                tus inversiones a plazo para que {APP_NAME} pueda construir tu mapa financiero exacto.
               </Typography>
             </FadeInView>
           </Container>
@@ -615,7 +617,7 @@ export function LandingPage() {
           </Container>
         </Box>
 
-        {/* Van — showcase chat */}
+        {/* Vi — showcase chat */}
         <Box component="section" sx={{ py: { xs: 6, md: 10 } }}>
           <Container maxWidth="lg">
             <VanShowcaseSection />
@@ -683,7 +685,7 @@ export function LandingPage() {
                     <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#eab308' }} />
                     <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#22c55e' }} />
                     <Typography variant="caption" sx={{ ml: 2, color: 'grey.600' }}>
-                      Vantix · Disponibilidad real
+                      {APP_NAME} · Disponibilidad real
                     </Typography>
                   </Box>
                   <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -806,7 +808,7 @@ export function LandingPage() {
                   mx: 'auto',
                 }}
               >
-                Vantix no se conecta a tus bancos. Tu privacidad es primero: tú tienes el control de la información y
+                {APP_NAME} no se conecta a tus bancos. Tu privacidad es primero: tú tienes el control de la información y
                 nosotros el poder del análisis.
               </Typography>
             </FadeInView>
@@ -840,7 +842,8 @@ export function LandingPage() {
                     mb: { xs: 3, md: 4 },
                   }}
                 >
-                  El mejor momento para empezar fue ayer. El segundo mejor es hoy. Únete a Vantix y domina tus finanzas.
+                  El mejor momento para empezar fue ayer. El segundo mejor es hoy. Únete a {APP_NAME} y domina tus
+                  finanzas.
                 </Typography>
                 <Button
                   component={Link}
@@ -882,8 +885,8 @@ export function LandingPage() {
               alignItems={{ xs: 'flex-start', sm: 'center' }}
             >
               <Link to="/" className="flex items-center gap-2 no-underline text-inherit">
-                <LogoVantix size={36} />
-                <span className="font-bold text-white">Vantix</span>
+                <LogoVidya size={36} />
+                <span className="font-medium tracking-[0.08em] text-white">{APP_NAME}</span>
               </Link>
               <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap>
                 <Link to="/register" className="text-sm text-zinc-400 no-underline hover:text-white">
@@ -898,7 +901,7 @@ export function LandingPage() {
               </Stack>
             </Stack>
             <Typography variant="caption" color="grey.600" sx={{ display: 'block', mt: 3 }}>
-              © {new Date().getFullYear()} Vantix. Visualización 360 para decisiones reales.
+              © {new Date().getFullYear()} {APP_NAME}. Visualización 360 para decisiones reales.
             </Typography>
           </Container>
         </Box>

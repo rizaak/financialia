@@ -15,6 +15,7 @@ import {
   patchInstallmentPlan,
   type InstallmentPlanCommitmentRow,
 } from '../../api/fetchInstallmentPlansMgmt';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { formatMoney } from '../../lib/formatMoney';
 
 export type AdjustInstallmentPlanDialogProps = {
@@ -52,7 +53,7 @@ export function AdjustInstallmentPlanDialog({
       const tid = toast.loading('Cancelando plan…');
       try {
         await patchInstallmentPlan(getAccessToken, plan.id, { cancel: true });
-        toast.success('Plan cancelado', { id: tid });
+        toast.success(VI_SUCCESS_MESSAGE, { id: tid, description: 'Plan cancelado.' });
         await onSaved();
         onClose();
       } catch (e) {
@@ -83,7 +84,7 @@ export function AdjustInstallmentPlanDialog({
         monthlyAmount: m,
         remainingInstallments: r,
       });
-      toast.success('Plan actualizado', { id: tid });
+      toast.success(VI_SUCCESS_MESSAGE, { id: tid, description: 'Plan actualizado.' });
       await onSaved();
       onClose();
     } catch (e) {

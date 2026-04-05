@@ -88,6 +88,16 @@ export type PatchCreditCardAccountPayload = {
   creditLimit?: number;
   /** Fracción anual (ej. 0.45 = 45%), misma convención que al crear tarjeta. */
   annualInterestRatePct?: number;
+  closingDay?: number;
+  /** Días naturales después del corte hasta el pago (1–60). */
+  paymentDueDaysAfterClosing?: number;
+};
+
+export type PatchAccountPayload = {
+  status?: 'ACTIVE' | 'ARCHIVED';
+  name?: string;
+  /** Reconcilia el saldo con este valor (≥ 0). */
+  actualBalance?: number;
 };
 
 export async function patchCreditCardAccount(
@@ -147,13 +157,13 @@ export async function moveToCajita(
   return res.json() as Promise<AccountRow>;
 }
 
-export async function patchAccountStatus(
+export async function patchAccount(
   getAccessToken: () => Promise<string>,
   accountId: string,
-  body: { status: 'ACTIVE' | 'ARCHIVED' },
+  body: PatchAccountPayload,
 ): Promise<AccountRow> {
   const token = await getAccessToken();
-  const res = await fetch(`${getApiBaseUrl()}/accounts/${accountId}`, {
+  const res = await fetch(`${getApiBaseUrl()}/accounts/${encodeURIComponent(accountId)}`, {
     method: 'PATCH',
     headers: {
       Accept: 'application/json',
@@ -164,6 +174,14 @@ export async function patchAccountStatus(
   });
   await assertOk(res);
   return res.json() as Promise<AccountRow>;
+}
+
+export async function patchAccountStatus(
+  getAccessToken: () => Promise<string>,
+  accountId: string,
+  body: { status: 'ACTIVE' | 'ARCHIVED' },
+): Promise<AccountRow> {
+  return patchAccount(getAccessToken, accountId, body);
 }
 
 /** Reconcilia el saldo de la cuenta con el valor real (crea transacción ADJUSTMENT si hay diferencia). */

@@ -2,7 +2,7 @@ import { createTheme } from '@mui/material/styles';
 import type {} from '@mui/x-data-grid/themeAugmentation';
 
 const glassBg = 'rgba(255, 255, 255, 0.03)';
-/** Borde estándar Vantix (glass oscuro). */
+/** Borde estándar Vidya (glass oscuro). */
 const glassBorder = '1px solid rgba(255, 255, 255, 0.1)';
 const electric = '#38bdf8';
 const purple = '#a78bfa';

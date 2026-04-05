@@ -1,5 +1,6 @@
 import type { ShellUser } from '../../layouts/shellContext';
-import { LogoVantix } from '../brand/LogoVantix';
+import { APP_NAME } from '../../config/brandConfig';
+import { LogoVidya } from '../brand/LogoVidya';
 import { UserMenu } from './UserMenu';
 
 type Props = {
@@ -23,8 +24,8 @@ export function AppTopBar({ user, onLogout, onNavigate, onOpenSidebar }: Props) 
         </svg>
       </button>
       <span className="flex min-w-0 flex-1 items-center justify-center gap-2 truncate lg:hidden">
-        <LogoVantix size={28} />
-        <span className="text-sm font-semibold tracking-tight text-zinc-900">Vantix</span>
+        <LogoVidya size={28} />
+        <span className="text-sm font-medium tracking-[0.08em] text-zinc-900">{APP_NAME}</span>
       </span>
       <div className="ml-auto shrink-0">
         <UserMenu user={user} onLogout={onLogout} onNavigate={onNavigate} align="right" />

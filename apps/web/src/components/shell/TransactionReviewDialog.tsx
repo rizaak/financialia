@@ -42,6 +42,7 @@ import {
 import { postInstallmentPlan } from '../../api/fetchCreditCard';
 import type { ParseNaturalLanguageResponse } from '../../api/fetchParseNaturalLanguage';
 import { useAccounts } from '../../hooks/useAccounts';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { useTransactions } from '../../hooks/useTransactions';
 import { formatMoney } from '../../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../../lib/localCalendarRange';
@@ -268,10 +269,10 @@ export function TransactionReviewDialog({
           description: description.trim() || undefined,
         });
         const accLabel = accounts.find((a) => a.id === accountId)?.name ?? 'tu tarjeta';
-        toast.success(
-          `¡Listo! Compra a ${instMonths} meses registrada en ${accLabel} (impacto mensual en gastos).`,
-          { id },
-        );
+        toast.success(VI_SUCCESS_MESSAGE, {
+          id,
+          description: `Compra a ${instMonths} meses en ${accLabel} (impacto mensual en gastos).`,
+        });
         onClose();
         await onSaved();
       } catch (e) {
@@ -305,8 +306,9 @@ export function TransactionReviewDialog({
           autoReinvest,
         });
         const accLabel = accounts.find((a) => a.id === accountId)?.name ?? 'tu cuenta';
-        toast.success(`¡Listo! Se registró la inversión de ${formatMoney(amt, curCode)} en ${accLabel}`, {
+        toast.success(VI_SUCCESS_MESSAGE, {
           id,
+          description: `Inversión de ${formatMoney(amt, curCode)} en ${accLabel}.`,
         });
         onClose();
         await onSaved();
@@ -338,7 +340,8 @@ export function TransactionReviewDialog({
     };
     try {
       const result = await postTransaction(payload, {
-        successMessage: `¡Listo! Se registró el ${verb} de ${formatMoney(amt, curCode)} en ${accountLabel}`,
+        successMessage: VI_SUCCESS_MESSAGE,
+        successDescription: `${verb === 'ingreso' ? 'Ingreso' : 'Gasto'} de ${formatMoney(amt, curCode)} en ${accountLabel}.`,
         loadingMessage: 'Guardando…',
       });
       if (result !== undefined) {

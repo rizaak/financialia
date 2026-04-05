@@ -16,9 +16,9 @@
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
     "dev:api": "npm run start:dev -w @financial-ia/api",
-    "dev:web": "npm run dev -w @vantix/web",
+    "dev:web": "npm run dev -w @vidya/web",
     "build:api": "npm run build -w @financial-ia/api",
-    "build:web": "npm run build -w @vantix/web",
+    "build:web": "npm run build -w @vidya/web",
     "prepare": "prisma generate"
   },
   "devDependencies": {
