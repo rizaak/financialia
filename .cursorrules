@@ -1,4 +1,4 @@
-# Vantix — convenciones del repo
+# Vidya — convenciones del repo
 
 - Arquitectura: SOLID, Clean Architecture; dependencias hacia adentro (dominio → aplicación → infraestructura).
 - Backend (NestJS): controladores delgados; lógica en servicios/casos de uso; DTOs con class-validator; mappers para respuestas HTTP.

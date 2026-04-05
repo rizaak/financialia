@@ -1,4 +1,5 @@
 import AddIcon from '@mui/icons-material/Add';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import StraightenOutlined from '@mui/icons-material/StraightenOutlined';
 import {
@@ -15,18 +16,19 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { fetchAccounts as fetchAccountsApi, patchAccountStatus, type AccountRow } from '../api/fetchAccounts';
-import { AddCreditCardDialog } from '../components/AddCreditCardDialog';
-import { AdjustBalanceDialog } from '../components/accounts/AdjustBalanceDialog';
-import { LiquidByTypeDonut } from '../components/accounts/LiquidByTypeDonut';
-import { NewAccountDialog } from '../components/accounts/NewAccountDialog';
-import { SectionCard } from '../components/SectionCard';
-import { StatCard } from '../components/StatCard';
-import { TransferForm } from '../components/TransferForm';
-import { CreditCardPaymentDialog } from '../dashboard/CreditCardPaymentDialog';
-import type { ShellOutletContext } from '../layouts/shellContext';
-import { formatMoney } from '../lib/formatMoney';
-import { useFinanceStore } from '../stores/financeStore';
+import { fetchAccounts as fetchAccountsApi, patchAccountStatus, type AccountRow } from '@/api/fetchAccounts';
+import { AddCreditCardDialog } from '@/components/AddCreditCardDialog';
+import { AdjustBalanceDialog } from '@/components/accounts/AdjustBalanceDialog';
+import { EditAccountGlassDialog } from '@/components/accounts/EditAccountGlassDialog';
+import { LiquidByTypeDonut } from '@/components/accounts/LiquidByTypeDonut';
+import { NewAccountDialog } from '@/components/accounts/NewAccountDialog';
+import { SectionCard } from '@/components/SectionCard';
+import { StatCard } from '@/components/StatCard';
+import { TransferForm } from '@/components/TransferForm';
+import { CreditCardPaymentDialog } from '@/dashboard/CreditCardPaymentDialog';
+import type { ShellOutletContext } from '@/layouts/shellContext';
+import { formatMoney } from '@/lib/formatMoney';
+import { useFinanceStore } from '@/stores/financeStore';
 
 function accountTypeLabel(t: AccountRow['type']): string {
   switch (t) {
@@ -92,6 +94,7 @@ export function AccountsPage() {
   const [archiveDialog, setArchiveDialog] = useState<'idle' | 'balance' | 'confirm'>('idle');
   const [archiveTarget, setArchiveTarget] = useState<AccountRow | null>(null);
   const [adjustBalanceAccount, setAdjustBalanceAccount] = useState<AccountRow | null>(null);
+  const [editAccount, setEditAccount] = useState<AccountRow | null>(null);
 
   const refreshAllAccounts = useCallback(async () => {
     await fetchAccounts(getAccessToken);
@@ -349,6 +352,18 @@ export function AccountsPage() {
                           justifyContent: 'flex-end',
                         }}
                       >
+                        <Tooltip title="Editar">
+                          <IconButton
+                            size="small"
+                            aria-label={`Editar ${a.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditAccount(a);
+                            }}
+                          >
+                            <EditOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                         <Tooltip title="Archivar">
                           <IconButton
                             size="small"
@@ -512,6 +527,18 @@ export function AccountsPage() {
                         </Box>
                         <Box component="td" sx={{ py: 1.25, textAlign: 'right' }}>
                           <Stack direction="row" spacing={0} justifyContent="flex-end" alignItems="center">
+                            <Tooltip title="Editar">
+                              <IconButton
+                                size="small"
+                                aria-label={`Editar ${a.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditAccount(a);
+                                }}
+                              >
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Ajustar saldo">
                               <IconButton
                                 size="small"
@@ -565,6 +592,17 @@ export function AccountsPage() {
         account={adjustBalanceAccount}
         getAccessToken={getAccessToken}
         onSuccess={async () => {
+          notifyTransactionSaved();
+          await refreshAllAccounts();
+        }}
+      />
+
+      <EditAccountGlassDialog
+        open={editAccount != null}
+        onClose={() => setEditAccount(null)}
+        account={editAccount}
+        getAccessToken={getAccessToken}
+        onSaved={async () => {
           notifyTransactionSaved();
           await refreshAllAccounts();
         }}

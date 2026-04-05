@@ -1,6 +1,7 @@
 import { Box, Drawer, Fab, IconButton, Typography, useTheme } from '@mui/material';
 import { MessageCircle, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { APP_AI_LABEL } from '../../config/brandConfig';
 import { FinancialChatInsights } from './FinancialChatInsights';
 
 const QUICK_ACTIONS_FAB_OFFSET = 88;
@@ -22,7 +23,7 @@ export function FinancialChatDrawerTrigger({ getAccessToken }: Props) {
     <>
       <Fab
         color="primary"
-        aria-label="Abrir Vantix AI"
+        aria-label={`Abrir ${APP_AI_LABEL}`}
         onClick={() => setOpen(true)}
         sx={{
           position: 'fixed',
@@ -62,7 +63,7 @@ export function FinancialChatDrawerTrigger({ getAccessToken }: Props) {
           }}
         >
           <Typography variant="subtitle1" fontWeight={700}>
-            Vantix AI
+            {APP_AI_LABEL}
           </Typography>
           <IconButton aria-label="Cerrar panel" onClick={handleClose} size="small">
             <X size={20} strokeWidth={2} />

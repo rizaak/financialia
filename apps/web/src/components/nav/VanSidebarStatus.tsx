@@ -1,4 +1,5 @@
 import { Badge, Box, Tooltip, Typography } from '@mui/material';
+import { VI_AVATAR_GRADIENT } from '../../config/brandConfig';
 
 const electric = '#38bdf8';
 
@@ -10,7 +11,7 @@ type Props = {
 };
 
 /**
- * Bloque "Estado de Van" en la parte superior del sidebar.
+ * Bloque "Estado de Vi" en la parte superior del sidebar.
  */
 export function VanSidebarStatus({ showNotification, message, compact }: Props) {
   if (compact) {
@@ -44,11 +45,11 @@ export function VanSidebarStatus({ showNotification, message, compact }: Props) 
                 fontWeight: 900,
                 fontSize: '0.85rem',
                 color: 'white',
-                background: `linear-gradient(145deg, ${electric} 0%, #2563eb 50%, #a78bfa 100%)`,
-                boxShadow: `0 0 20px ${electric}44`,
+                background: VI_AVATAR_GRADIENT,
+                boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)',
               }}
             >
-              V
+              Vi
             </Box>
           </Badge>
         </Box>
@@ -96,16 +97,16 @@ export function VanSidebarStatus({ showNotification, message, compact }: Props) 
               fontSize: '0.8rem',
               color: 'white',
               flexShrink: 0,
-              background: `linear-gradient(145deg, ${electric} 0%, #2563eb 50%, #a78bfa 100%)`,
-              boxShadow: `0 0 18px ${electric}40`,
+              background: VI_AVATAR_GRADIENT,
+              boxShadow: '0 0 18px rgba(37, 99, 235, 0.38)',
             }}
           >
-            V
+            Vi
           </Box>
         </Badge>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="caption" sx={{ color: electric, fontWeight: 800, letterSpacing: 0.04, display: 'block' }}>
-            Estado de Van
+            Estado de Vi
           </Typography>
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.72)', fontWeight: 400, lineHeight: 1.45, display: 'block', mt: 0.25 }}>
             {message}

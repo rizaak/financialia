@@ -1,7 +1,8 @@
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import type { VanSidebarStatus } from '../../hooks/useVanSidebarStatus';
-import { LogoVantix } from '../brand/LogoVantix';
+import { APP_NAME, APP_TAGLINE } from '../../config/brandConfig';
+import { LogoVidya } from '../brand/LogoVidya';
 import { cn } from '../../lib/utils';
 import type { SidebarNavItem } from './sidebarNavConfig';
 import { VanSidebarStatus as VanSidebarStatusBlock } from './VanSidebarStatus';
@@ -14,7 +15,7 @@ type Props = {
 };
 
 export function SidebarNav({ items, showMini, onNavigate, vanStatus }: Props) {
-  const van = vanStatus ?? { showNotification: false, message: 'Van está analizando tus tramos…' };
+  const van = vanStatus ?? { showNotification: false, message: 'Vi está analizando tus tramos…' };
 
   return (
     <Box className="flex h-full flex-col py-2">
@@ -22,24 +23,24 @@ export function SidebarNav({ items, showMini, onNavigate, vanStatus }: Props) {
         {!showMini ? (
           <>
             <Box className="flex items-center gap-2 px-1">
-              <LogoVantix size={32} />
+              <LogoVidya size={32} />
               <Typography
                 component="h2"
-                className="text-base font-semibold tracking-tight text-zinc-100"
-                sx={{ fontWeight: 700 }}
+                className="text-[1.05rem] tracking-[0.06em] text-zinc-100"
+                sx={{ fontWeight: 500, letterSpacing: '0.08em', fontFamily: 'inherit' }}
               >
-                Vantix
+                {APP_NAME}
               </Typography>
             </Box>
             <Typography variant="caption" className="mt-1 block px-1 pl-2 font-normal text-zinc-400">
-              Inteligencia financiera
+              {APP_TAGLINE}
             </Typography>
           </>
         ) : (
           <Box className="flex justify-center px-1">
-            <Tooltip title="Vantix" placement="right">
+            <Tooltip title={APP_NAME} placement="right">
               <span className="inline-flex">
-                <LogoVantix size={30} />
+                <LogoVidya size={30} />
               </span>
             </Tooltip>
           </Box>

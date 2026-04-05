@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { confirmRecurringIncomeDeposit } from '../../api/fetchRecurringIncomes';
 import { getFinancialAiQuery } from '../../api/fetchFinancialAiQuery';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { HttpRequestError } from '../../lib/http/HttpRequestError';
 import { usePendingChatInsightStore } from '../../stores/pendingChatInsightStore';
 import { useFinanceStore } from '../../stores/financeStore';
@@ -77,7 +78,7 @@ export function FinancialChatInsights({ getAccessToken, variant = 'inline' }: Pr
           pending.enqueueChatMessage(result.spendingInsight.message.trim());
         }
         await refreshBalances(getAccessToken);
-        toast.success('Nómina registrada en tu saldo.');
+        toast.success(VI_SUCCESS_MESSAGE, { description: 'Nómina registrada en tu saldo.' });
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'No se pudo registrar el ingreso.');
       } finally {

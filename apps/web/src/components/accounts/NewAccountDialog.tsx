@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { type FormEvent, useEffect, useState } from 'react';
 import { createAccount, type AccountRow } from '../../api/fetchAccounts';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { useTransaction } from '../../hooks/useTransaction';
 import { Spinner } from '../ui/spinner';
 
@@ -98,8 +99,8 @@ export function NewAccountDialog({
           }),
         {
           loadingMessage: 'Creando cuenta…',
-          successMessage: '✅ Cuenta creada',
-          successDescription: name,
+          successMessage: VI_SUCCESS_MESSAGE,
+          successDescription: `Cuenta creada: ${name}`,
         },
       );
       if (result !== undefined) {

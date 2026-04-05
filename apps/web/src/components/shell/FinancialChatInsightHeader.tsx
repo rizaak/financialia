@@ -1,6 +1,7 @@
 import { Box, Stack, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { MessageCircle } from 'lucide-react';
+import { APP_AI_LABEL } from '../../config/brandConfig';
 
 export function FinancialChatInsightHeader() {
   const theme = useTheme();
@@ -22,7 +23,7 @@ export function FinancialChatInsightHeader() {
       </Box>
       <Box>
         <Typography variant="overline" color="primary" fontWeight={800} sx={{ lineHeight: 1.2 }}>
-          Vantix AI
+          {APP_AI_LABEL}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Pregunta por tus gastos, categorías o inversiones; la respuesta usa tus datos reales.

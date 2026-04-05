@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { AccountRow } from '../api/fetchAccounts';
 import { createTransfer } from '../api/fetchTransfers';
+import { VI_SUCCESS_MESSAGE } from '../config/brandConfig';
 import { formatMoney } from '../lib/formatMoney';
 import { useFinanceStore } from '../stores/financeStore';
 
@@ -117,7 +118,10 @@ export function CreditCardPaymentDialog({
         notes: `Pago tarjeta ${creditCardName}`,
       });
       await refreshBalancesAfterMutation(getAccessToken);
-      toast.success(`Pago de ${formatMoney(amt, cur)} registrado`, { id: tid });
+      toast.success(VI_SUCCESS_MESSAGE, {
+        id: tid,
+        description: `Pago de ${formatMoney(amt, cur)} registrado.`,
+      });
       await onSuccess?.();
       onClose();
     } catch (e) {

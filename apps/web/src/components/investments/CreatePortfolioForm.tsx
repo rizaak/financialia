@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import { createPortfolio, type CreatePortfolioBody } from '../../api/fetchInvestments';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { useTransaction } from '../../hooks/useTransaction';
 import { Spinner } from '../ui/spinner';
 
@@ -39,8 +40,8 @@ export function CreatePortfolioForm({ getAccessToken, onSaved }: Props) {
       }
       const result = await run(() => createPortfolio(getAccessToken, body), {
         loadingMessage: 'Creando portafolio…',
-        successMessage: '✅ Portafolio creado',
-        successDescription: trimmed,
+        successMessage: VI_SUCCESS_MESSAGE,
+        successDescription: `Portafolio: ${trimmed}`,
       });
       if (result !== undefined) {
         setName('');

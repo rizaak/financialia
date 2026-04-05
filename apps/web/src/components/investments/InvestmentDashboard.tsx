@@ -15,7 +15,7 @@ import { MuiGrowthLineChart } from './MuiGrowthLineChart';
 import { MuiPortfolioPieChart } from './MuiPortfolioPieChart';
 import { TargetAllocationTool } from './TargetAllocationTool';
 
-const STORAGE_KEY = 'vantix.investment.objectivesTargetPct.v1';
+const STORAGE_KEY = 'vidya.investment.objectivesTargetPct.v1';
 
 function emptyTargetAllocation(): Record<string, string> {
   return Object.fromEntries(PORTFOLIO_CATEGORIES.map((c) => [c.id, '']));

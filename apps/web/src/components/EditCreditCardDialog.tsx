@@ -12,6 +12,7 @@ import { CreditCard } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { patchCreditCardAccount, type AccountRow } from '../api/fetchAccounts';
+import { VI_SUCCESS_MESSAGE } from '../config/brandConfig';
 
 /**
  * Acepta 45, 45%, 0.45 → decimal anual para API (0–5 en fracción).
@@ -93,7 +94,7 @@ export function EditCreditCardDialog({
         creditLimit: limit,
         annualInterestRatePct: annual,
       });
-      toast.success('Tarjeta actualizada', { id: tid });
+      toast.success(VI_SUCCESS_MESSAGE, { id: tid, description: 'Tarjeta actualizada.' });
       await onSaved();
       onClose();
     } catch (e) {

@@ -63,8 +63,8 @@ function useEditTxSchema(hasMsi: boolean) {
     () =>
       z
         .object({
-          accountId: z.string().uuid(),
-          categoryId: z.string().uuid(),
+          accountId: z.uuid(),
+          categoryId: z.uuid(),
           amount: z.number().positive(),
           concept: z.string().min(1).max(500),
           notes: z.string(),

@@ -9,7 +9,7 @@ export type VanSidebarStatus = {
 };
 
 /**
- * Deriva el estado de Van para el menú lateral: saldo fuera de cajita en cuentas con rendimiento = tarea pendiente.
+ * Deriva el estado de Vi para el menú lateral: saldo fuera de cajita en cuentas con rendimiento = tarea pendiente.
  */
 export function useVanSidebarStatus(): VanSidebarStatus {
   const accountsList = useFinanceStore((s) => s.accountsList);
@@ -18,7 +18,7 @@ export function useVanSidebarStatus(): VanSidebarStatus {
     if (!accountsList?.length) {
       return {
         showNotification: false,
-        message: 'Van está analizando tus tramos…',
+        message: 'Vi está analizando tus tramos…',
       };
     }
 
@@ -34,7 +34,7 @@ export function useVanSidebarStatus(): VanSidebarStatus {
       showNotification: hasPendingMoveToCajita,
       message: hasPendingMoveToCajita
         ? 'Tienes saldo listo para mover a cajita y mejorar tu rendimiento.'
-        : 'Van está analizando tus tramos…',
+        : 'Vi está analizando tus tramos…',
     };
   }, [accountsList]);
 }

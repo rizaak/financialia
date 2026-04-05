@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -15,10 +15,15 @@ function writePublicVersionJson() {
 }
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
   plugins: [
     react(),
     {
-      name: 'vantix-version-json',
+      name: 'vidya-version-json',
       buildStart() {
         writePublicVersionJson();
       },

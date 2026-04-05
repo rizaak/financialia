@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import type { AccountRow } from '../../api/fetchAccounts';
 import { fetchAccounts } from '../../api/fetchAccounts';
 import { createTieredInvestmentWithStrategy } from '../../api/fetchInvestments';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { InvestmentTierFields, type TierFieldRow } from './InvestmentTierFields';
 
 function newTier(): TierFieldRow {
@@ -151,9 +152,9 @@ export function NewInvestmentDialog({
         ...(isLiquid ? {} : { maturityDate: `${maturityDate.trim()}T12:00:00.000Z` }),
         tiers: tiersPayload,
       });
-      toast.success(
-        `✅ Inversión '${trimmed}' creada correctamente. Saldo descontado de ${created.originAccount.name}`,
-      );
+      toast.success(VI_SUCCESS_MESSAGE, {
+        description: `Inversión '${trimmed}' creada. Saldo descontado de ${created.originAccount.name}.`,
+      });
       await onCreated();
       onClose();
     } catch (e) {
