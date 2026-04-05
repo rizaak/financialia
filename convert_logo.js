@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Convierte logo-vantix.svg (raíz del repo) → apps/web/public/logo-vantix.png (512×512, fondo transparente).
- * URL pública única para Auth0: {tu-dominio}/logo-vantix.png
+ * Convierte logo-vidya.svg (raíz del repo) → apps/web/public/logo-vidya.png (512×512, fondo transparente).
+ * URL pública única para Auth0: {tu-dominio}/logo-vidya.png
  * Requiere: npm install sharp (en la raíz del monorepo)
  */
 const fs = require('fs');
@@ -9,8 +9,8 @@ const path = require('path');
 const sharp = require('sharp');
 
 const ROOT = __dirname;
-const SVG_NAME = 'logo-vantix.svg';
-const OUT_REL = path.join('apps', 'web', 'public', 'logo-vantix.png');
+const SVG_NAME = 'logo-vidya.svg';
+const OUT_REL = path.join('apps', 'web', 'public', 'logo-vidya.png');
 
 async function main() {
   const svgPath = path.join(ROOT, SVG_NAME);

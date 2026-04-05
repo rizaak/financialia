@@ -37,7 +37,7 @@ function AnimatedSparkle() {
     <motion.span
       className="inline-flex text-sky-400"
       aria-hidden
-      title="Van"
+      title="Vi"
       animate={
         reduce
           ? undefined
@@ -55,7 +55,7 @@ function AnimatedSparkle() {
 }
 
 /**
- * Entrada tipo búsqueda con chispa animada (Van) + voz → API → TransactionReviewDialog.
+ * Entrada tipo búsqueda con chispa animada (Vi) + voz → API → TransactionReviewDialog.
  */
 export function SmartCommandBar({
   getAccessToken,
@@ -199,7 +199,7 @@ export function SmartCommandBar({
             variant="standard"
             fullWidth
             size="small"
-            placeholder="Pregúntale a Van o describe un movimiento…"
+            placeholder="Pregúntale a Vi o describe un movimiento…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -301,7 +301,7 @@ export function SmartCommandBar({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <CircularProgress size={22} thickness={5} color="primary" />
                 <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                  Van está procesando tu audio…
+                  Vi está procesando tu audio…
                 </Typography>
               </Box>
             ) : (
@@ -316,7 +316,7 @@ export function SmartCommandBar({
                   }}
                 />
                 <Typography variant="caption" sx={{ mt: 0.5, display: 'block', color: '#94a3b8' }}>
-                  Van interpreta tu mensaje…
+                  Vi interpreta tu mensaje…
                 </Typography>
               </>
             )}

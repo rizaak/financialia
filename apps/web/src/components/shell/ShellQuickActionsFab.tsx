@@ -148,7 +148,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           onClick={() => openMsiDialog()}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
-          <span className="mr-2 inline-flex text-amber-400">
+          <span className="mr-2 inline-flex text-[#3b82f6]">
             <CalendarClock size={18} />
           </span>
           Registrar MSI

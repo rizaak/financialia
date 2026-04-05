@@ -14,6 +14,7 @@ import {
 import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { addInvestmentTier, createTieredStrategy } from '../../api/fetchInvestments';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { useTransaction } from '../../hooks/useTransaction';
 
 type TierRow = { id: string; upperLimit: string; annualRatePct: string };
@@ -95,8 +96,8 @@ export function TieredStrategyDialog({ open, onClose, getAccessToken, onSaved }:
       },
       {
         loadingMessage: 'Creando estrategia y tramos…',
-        successMessage: '✅ Estrategia por tramos creada',
-        successDescription: trimmed,
+        successMessage: VI_SUCCESS_MESSAGE,
+        successDescription: `Estrategia por tramos: ${trimmed}`,
       },
     );
 

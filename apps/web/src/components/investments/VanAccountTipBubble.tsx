@@ -12,7 +12,7 @@ type Props = {
 };
 
 /**
- * Tip rápido de Van junto a una cuenta de inversión / rendimiento.
+ * Tip rápido de Vi junto a una cuenta de inversión / rendimiento.
  */
 export function VanAccountTipBubble({ accountKey, dailyEstimatedEarnings, currencyCode }: Props) {
   const daily = Number(dailyEstimatedEarnings);
@@ -40,7 +40,7 @@ export function VanAccountTipBubble({ accountKey, dailyEstimatedEarnings, curren
     >
       <Typography variant="caption" sx={{ lineHeight: 1.5, color: 'rgba(255,255,255,0.88)', fontSize: '0.7rem' }}>
         <Box component="span" sx={{ color: electric, fontWeight: 800 }}>
-          Van
+          Vi
         </Box>
         : En esta cuenta, tu ganancia estimada hoy fue de{' '}
         <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>

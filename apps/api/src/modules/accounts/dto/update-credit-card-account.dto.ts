@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Length, Max, Min } from 'class-validator';
 
 export class UpdateCreditCardAccountDto {
   @IsOptional()
@@ -20,4 +20,19 @@ export class UpdateCreditCardAccountDto {
   @Min(0)
   @Max(5)
   annualInterestRatePct?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  closingDay?: number;
+
+  /** Días naturales después del corte hasta la fecha límite de pago (1–60). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  paymentDueDaysAfterClosing?: number;
 }

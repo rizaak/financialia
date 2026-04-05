@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import {
   Autocomplete,
   Box,
@@ -24,6 +25,8 @@ import { useTransactions } from '../../hooks/useTransactions';
 import { availableForExpense } from '../../lib/accountAvailableForExpense';
 import { formatMoney } from '../../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../../lib/localCalendarRange';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
+import { parseMoneyInput } from '../../lib/parseMoneyInput';
 import {
   buildExpenseIncomeSchema,
   buildTransferSchema,
@@ -31,6 +34,23 @@ import {
   type TransferFormValues,
 } from '../../lib/transactionDialogSchemas';
 import { CustomButton } from './CustomButton';
+
+const expensePrimaryButtonSx = {
+  fontWeight: 700,
+  textTransform: 'none',
+  px: 2.5,
+  background: 'linear-gradient(145deg, #3b82f6 0%, #2563eb 100%)',
+  color: '#fff',
+  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.45)',
+  '&:hover': {
+    background: 'linear-gradient(145deg, #60a5fa 0%, #3b82f6 100%)',
+    boxShadow: '0 8px 28px rgba(59, 130, 246, 0.55), 0 0 24px rgba(59, 130, 246, 0.35)',
+  },
+  '&.Mui-disabled': {
+    background: 'action.disabledBackground',
+    color: 'action.disabled',
+  },
+} as const;
 
 export type TransactionDialogMode = 'expense' | 'income' | 'transfer';
 
@@ -213,7 +233,7 @@ function ExpenseIncomeDialogBody({
     defaultValues: {
       accountId: '',
       categoryId: '',
-      amount: 0,
+      amount: '',
       concept: '',
       notes: '',
       occurredAt: todayInputDate(),
@@ -228,7 +248,12 @@ function ExpenseIncomeDialogBody({
   } = form;
 
   const watchedAccountId = watch('accountId');
-  const watchedAmount = watch('amount');
+  const watchedAmountRaw = watch('amount');
+  const watchedAmount = useMemo(() => {
+    const s = typeof watchedAmountRaw === 'string' ? watchedAmountRaw : '';
+    const n = parseMoneyInput(s);
+    return Number.isFinite(n) ? n : NaN;
+  }, [watchedAmountRaw]);
   const selectedAccount = useMemo(
     () => inCurrency.find((a) => a.id === watchedAccountId),
     [inCurrency, watchedAccountId],
@@ -243,12 +268,13 @@ function ExpenseIncomeDialogBody({
 
   async function onSubmit(values: ExpenseIncomeFormValues) {
     const acc = inCurrency.find((a) => a.id === values.accountId);
+    const amountNum = parseMoneyInput(values.amount);
     const result = await postTransaction(
       {
         accountId: values.accountId,
         categoryId: values.categoryId,
         type: kind,
-        amount: values.amount,
+        amount: amountNum,
         concept: values.concept.trim(),
         notes: values.notes?.trim() || undefined,
         occurredAt: localDateInputToIsoMidday(values.occurredAt),
@@ -256,11 +282,11 @@ function ExpenseIncomeDialogBody({
       },
       {
         loadingMessage: kind === 'EXPENSE' ? 'Guardando gasto…' : 'Guardando ingreso…',
-        successMessage:
+        successMessage: VI_SUCCESS_MESSAGE,
+        successDescription:
           kind === 'EXPENSE'
-            ? `✅ Gasto registrado con éxito en ${acc?.name ?? 'la cuenta'}`
-            : `✅ Ingreso registrado con éxito en ${acc?.name ?? 'la cuenta'}`,
-        successDescription: values.concept.trim(),
+            ? 'He actualizado tu saldo disponible.'
+            : `Ingreso en ${acc?.name ?? 'la cuenta'}: ${values.concept.trim()}`,
       },
     );
     if (result !== undefined) {
@@ -361,21 +387,53 @@ function ExpenseIncomeDialogBody({
       <Controller
         name="amount"
         control={control}
-        render={({ field }) => (
-          <TextField
-            type="number"
-            inputProps={{ step: '0.01', min: 0 }}
-            label="Monto"
-            error={Boolean(errors.amount)}
-            helperText={errors.amount?.message}
-            fullWidth
-            value={Number.isFinite(field.value) ? field.value : ''}
-            onChange={(e) => {
-              const n = parseFloat(e.target.value);
-              field.onChange(Number.isFinite(n) ? n : 0);
-            }}
-          />
-        )}
+        render={({ field }) => {
+          const hasErr = Boolean(errors.amount);
+          const amtStr = typeof field.value === 'string' ? field.value : '';
+          const hasTyping = amtStr.trim().length > 0;
+          return (
+            <TextField
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              label="Monto"
+              placeholder="$0.00"
+              error={hasErr}
+              helperText={errors.amount?.message}
+              fullWidth
+              value={amtStr}
+              onChange={(e) => {
+                let v = e.target.value;
+                v = v.replace(/,/g, '.');
+                field.onChange(v);
+              }}
+              onFocus={(e) => {
+                const el = e.target as HTMLInputElement;
+                if (el.value === '') {
+                  requestAnimationFrame(() => el.setSelectionRange(0, 0));
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  '& fieldset': {
+                    borderColor:
+                      hasTyping && !hasErr ? 'rgba(59, 130, 246, 0.55)' : 'rgba(255, 255, 255, 0.12)',
+                  },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&.Mui-focused:not(.Mui-error) fieldset': {
+                    borderColor: '#3b82f6',
+                    boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
+                  },
+                  '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': hasTyping
+                    ? { borderColor: 'rgba(59, 130, 246, 0.45)' }
+                    : {},
+                },
+                '& .MuiInputLabel-root': { color: 'text.secondary' },
+              }}
+            />
+          );
+        }}
       />
       {kind === 'EXPENSE' && insufficientFunds && selectedAccount ? (
         <Typography variant="caption" color="error" sx={{ display: 'block', mt: -0.5 }}>
@@ -408,17 +466,45 @@ function ExpenseIncomeDialogBody({
           <TextField {...field} type="date" label="Fecha" InputLabelProps={{ shrink: true }} fullWidth />
         )}
       />
-      <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ pt: 1 }}>
-        <Button type="button" onClick={() => form.reset()} color="inherit">
+      <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center" sx={{ pt: 1 }}>
+        <Button
+          type="button"
+          onClick={() =>
+            form.reset({
+              accountId: '',
+              categoryId: '',
+              amount: '',
+              concept: '',
+              notes: '',
+              occurredAt: todayInputDate(),
+            })
+          }
+          color="inherit"
+          variant="text"
+          size="small"
+          sx={{ fontWeight: 500, color: 'text.secondary', textTransform: 'none', minWidth: 'auto' }}
+        >
           Limpiar
         </Button>
-        <CustomButton
-          type="submit"
-          operationVariant={kind === 'EXPENSE' ? 'expense' : 'income'}
-          disabled={!isValid || isSubmitting || (kind === 'EXPENSE' && insufficientFunds)}
-        >
-          {kind === 'EXPENSE' ? 'Registrar gasto' : 'Registrar ingreso'}
-        </CustomButton>
+        {kind === 'EXPENSE' ? (
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={!isValid || isSubmitting || insufficientFunds}
+            startIcon={<ReceiptLongIcon />}
+            sx={expensePrimaryButtonSx}
+          >
+            Registrar gasto
+          </Button>
+        ) : (
+          <CustomButton
+            type="submit"
+            operationVariant="income"
+            disabled={!isValid || isSubmitting}
+          >
+            Registrar ingreso
+          </CustomButton>
+        )}
       </Stack>
     </Stack>
   );
@@ -479,8 +565,11 @@ function TransferDialogBody({
       },
       {
         loadingMessage: 'Procesando transferencia…',
-        successMessage: `💸 Transferencia de ${amtLabel} realizada correctamente`,
-        successDescription: from && to ? `${from.name} → ${to.name}` : undefined,
+        successMessage: VI_SUCCESS_MESSAGE,
+        successDescription:
+          from && to
+            ? `Transferencia de ${amtLabel}: ${from.name} → ${to.name}`
+            : `Transferencia de ${amtLabel} realizada correctamente.`,
       },
     );
     if (result !== undefined) {

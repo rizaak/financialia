@@ -15,6 +15,6 @@ export const usePrivacyStore = create<PrivacyState>()(
       setHideBalances: (v) => set({ hideBalances: v }),
       hydrateFromServer: (hide) => set({ hideBalances: hide }),
     }),
-    { name: 'vantix-privacy' },
+    { name: 'vidya-privacy' },
   ),
 );

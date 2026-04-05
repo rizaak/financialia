@@ -23,6 +23,7 @@ import {
 import CheckIcon from '@mui/icons-material/Check';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { VI_SUCCESS_MESSAGE } from '../config/brandConfig';
 import {
   confirmUnifiedRecurringEvent,
   fetchUpcomingRecurringEvents,
@@ -118,7 +119,7 @@ export function UpcomingEventsWidget({
         await patchRecurringEvent(getAccessToken, event.id, { defaultAccountId: accountId });
       }
       await confirmUnifiedRecurringEvent(getAccessToken, event.id);
-      toast.success(`${event.name} registrado.`);
+      toast.success(VI_SUCCESS_MESSAGE, { description: `${event.name} registrado.` });
       await refreshBalancesAfterMutation(getAccessToken);
       onMutation();
       setPending(null);

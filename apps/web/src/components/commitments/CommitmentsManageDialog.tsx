@@ -27,6 +27,7 @@ import {
   recurringExpenseFrequencyLabel,
   type RecurringExpenseListRow,
 } from '../../api/fetchRecurringExpenses';
+import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
 import { formatDashboardLoadError } from '../../lib/formatDashboardLoadError';
 import { formatMoney } from '../../lib/formatMoney';
 import { AdjustInstallmentPlanDialog } from './AdjustInstallmentPlanDialog';
@@ -94,7 +95,7 @@ export function CommitmentsManageDialog({
     const tid = toast.loading('Eliminando plan…');
     try {
       await patchInstallmentPlan(getAccessToken, row.id, { cancel: true });
-      toast.success('Plan MSI eliminado', { id: tid });
+      toast.success(VI_SUCCESS_MESSAGE, { id: tid, description: 'Plan MSI eliminado.' });
       await afterMutation();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'No se pudo eliminar';
@@ -116,7 +117,7 @@ export function CommitmentsManageDialog({
     const tid = toast.loading('Archivando suscripción…');
     try {
       await patchRecurringExpense(getAccessToken, row.id, { isArchived: true });
-      toast.success('Suscripción eliminada', { id: tid });
+      toast.success(VI_SUCCESS_MESSAGE, { id: tid, description: 'Suscripción eliminada.' });
       await afterMutation();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'No se pudo eliminar';

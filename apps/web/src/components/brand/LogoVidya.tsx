@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { APP_NAME } from '../../config/brandConfig';
 
 type Props = {
   /** Tamaño del icono en px (cuadrado). */
@@ -8,12 +9,12 @@ type Props = {
 };
 
 /**
- * Marca Vantix: V y X entrelazadas sobre un prisma hexagonal (vista cenital).
+ * Marca Vidya: V y X entrelazadas sobre un prisma hexagonal (vista cenital).
  * Degradado azul zafiro → cian.
  */
-export function LogoVantix({ size = 36, className, 'aria-label': ariaLabel = 'Vantix' }: Props) {
+export function LogoVidya({ size = 36, className, 'aria-label': ariaLabel = APP_NAME }: Props) {
   const rawId = useId();
-  const gid = `vantix-grad-${rawId.replace(/:/g, '')}`;
+  const gid = `vidya-grad-${rawId.replace(/:/g, '')}`;
 
   return (
     <svg
@@ -34,7 +35,6 @@ export function LogoVantix({ size = 36, className, 'aria-label': ariaLabel = 'Va
         </linearGradient>
       </defs>
 
-      {/* Prisma hexagonal (cara superior) — hexágono plano con borde superior plano */}
       <path
         d="M32 6 L52 17.5 L52 40.5 L32 52 L12 40.5 L12 17.5 Z"
         stroke={`url(#${gid})`}
@@ -44,7 +44,6 @@ export function LogoVantix({ size = 36, className, 'aria-label': ariaLabel = 'Va
         opacity={0.95}
       />
 
-      {/* V: desde vértices superiores laterales al vértice inferior del prisma (entrelaza con la X) */}
       <path
         d="M12 17.5 L32 52 L52 17.5"
         stroke={`url(#${gid})`}
@@ -54,7 +53,6 @@ export function LogoVantix({ size = 36, className, 'aria-label': ariaLabel = 'Va
         fill="none"
       />
 
-      {/* X: diagonales que cruzan el interior del prisma (entrelazadas con la V en el centro) */}
       <path
         d="M12 40.5 L52 17.5 M52 40.5 L12 17.5"
         stroke={`url(#${gid})`}

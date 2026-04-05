@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import type { CategoryRow } from '../api/categoryTypes';
 import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
 import { useTransactions } from '../hooks/useTransactions';
+import { VI_SUCCESS_MESSAGE } from '../config/brandConfig';
 import { localDateInputToIsoMidday } from '../lib/localCalendarRange';
 import { AccountSelector } from './AccountSelector';
 import { Spinner } from './ui/spinner';
@@ -120,10 +121,8 @@ export function QuickExpenseForm({
         },
         {
           loadingMessage: 'Guardando movimiento…',
-          successMessage: isExpense
-            ? `✅ Gasto registrado con éxito en ${accName}`
-            : `✅ Ingreso registrado con éxito en ${accName}`,
-          successDescription: c,
+          successMessage: VI_SUCCESS_MESSAGE,
+          successDescription: `${isExpense ? 'Gasto' : 'Ingreso'} en ${accName}: ${c}`,
         },
       );
       if (result !== undefined) {

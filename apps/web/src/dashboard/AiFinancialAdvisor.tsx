@@ -16,6 +16,7 @@ import {
   getLastCalendarMonthIsoRange,
   postSavingsAdvice,
 } from '../api/fetchSavingsAdvice';
+import { APP_AI_LABEL } from '../config/brandConfig';
 
 type Props = {
   getAccessToken: () => Promise<string>;
@@ -123,7 +124,7 @@ export function AiFinancialAdvisor({ getAccessToken }: Props) {
                 letterSpacing: '0.08em',
               })}
             >
-              Vantix AI
+              {APP_AI_LABEL}
             </Typography>
             <Typography
               variant="subtitle1"

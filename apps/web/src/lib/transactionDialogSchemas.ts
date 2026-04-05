@@ -1,26 +1,37 @@
 import { z } from 'zod';
 import type { AccountRow } from '../api/fetchAccounts';
+import { parseMoneyInput } from './parseMoneyInput';
 
-const id = z.string().uuid();
+const id = z.uuid();
 
 export function buildExpenseIncomeSchema(accounts: AccountRow[], kind: 'EXPENSE' | 'INCOME') {
   return z
     .object({
       accountId: id,
       categoryId: id,
-      amount: z.number().positive(),
+      /** Texto en el formulario; se valida con {@link parseMoneyInput} en superRefine. */
+      amount: z.string().min(1, 'Indica el monto'),
       concept: z.string().min(1),
       notes: z.string().optional(),
       occurredAt: z.string().min(1),
     })
     .superRefine((data, ctx) => {
+      const n = parseMoneyInput(data.amount);
+      if (!Number.isFinite(n) || n <= 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['amount'],
+          message: 'Indica un monto mayor a 0.',
+        });
+        return;
+      }
       const acc = accounts.find((a) => a.id === data.accountId);
       if (!acc) {
         ctx.addIssue({ code: 'custom', path: ['accountId'], message: 'Cuenta no válida.' });
         return;
       }
       if (kind === 'INCOME') {
-        if (acc.type === 'CREDIT_CARD' && data.amount > Number(acc.balance)) {
+        if (acc.type === 'CREDIT_CARD' && n > Number(acc.balance)) {
           ctx.addIssue({
             code: 'custom',
             path: ['amount'],
@@ -34,7 +45,7 @@ export function buildExpenseIncomeSchema(accounts: AccountRow[], kind: 'EXPENSE'
         const debt = Number(acc.balance);
         if (Number.isFinite(limit) && limit > 0) {
           const available = Math.max(0, limit - debt);
-          if (data.amount > available) {
+          if (n > available) {
             ctx.addIssue({
               code: 'custom',
               path: ['amount'],
@@ -44,7 +55,7 @@ export function buildExpenseIncomeSchema(accounts: AccountRow[], kind: 'EXPENSE'
         }
         return;
       }
-      if (data.amount > Number(acc.balance)) {
+      if (n > Number(acc.balance)) {
         ctx.addIssue({
           code: 'custom',
           path: ['amount'],
@@ -88,20 +99,29 @@ export function buildTransferSchema(accounts: AccountRow[]) {
 export type ExpenseIncomeFormValues = z.infer<ReturnType<typeof buildExpenseIncomeSchema>>;
 export type TransferFormValues = z.infer<ReturnType<typeof buildTransferSchema>>;
 
-/** Gasto MSI: solo tarjeta de crédito + plazo en meses. */
+/** Gasto MSI: solo tarjeta de crédito + plazo en meses. `amount` es texto en el formulario; se parsea con {@link parseMoneyInput}. */
 export function buildMsiExpenseSchema(accounts: AccountRow[]) {
   const creditInScope = accounts.filter((a) => a.type === 'CREDIT_CARD');
   return z
     .object({
       accountId: id,
       categoryId: id,
-      amount: z.number().positive(),
+      amount: z.string().min(1, 'Indica el monto total de la compra'),
       concept: z.string().min(1),
       notes: z.string().optional(),
       occurredAt: z.string().min(1),
       totalInstallments: z.number().int().min(2).max(60),
     })
     .superRefine((data, ctx) => {
+      const n = parseMoneyInput(data.amount);
+      if (!Number.isFinite(n) || n <= 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['amount'],
+          message: 'Indica un monto mayor a 0.',
+        });
+        return;
+      }
       const acc = creditInScope.find((a) => a.id === data.accountId);
       if (!acc) {
         ctx.addIssue({
@@ -115,7 +135,7 @@ export function buildMsiExpenseSchema(accounts: AccountRow[]) {
       const debt = Number(acc.balance);
       if (Number.isFinite(limit) && limit > 0) {
         const available = Math.max(0, limit - debt);
-        if (data.amount > available) {
+        if (n > available) {
           ctx.addIssue({
             code: 'custom',
             path: ['amount'],
@@ -143,13 +163,21 @@ export function buildSubscriptionFormSchema() {
       name: z.string().min(1),
       accountId: id,
       categoryId: id,
-      amount: z.number().positive(),
+      amount: z.string().min(1, 'Indica el monto por periodo'),
       billingDay: z.number().int().min(1).max(31),
       frequency: subscriptionFrequency,
       billingMonth: z.number().int().min(1).max(12).optional(),
       billingWeekday: z.number().int().min(0).max(6).optional(),
     })
     .superRefine((data, ctx) => {
+      const amountNum = parseMoneyInput(data.amount);
+      if (!Number.isFinite(amountNum) || amountNum <= 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['amount'],
+          message: 'Indica un monto mayor a 0.',
+        });
+      }
       if (
         (data.frequency === 'ANNUAL' || data.frequency === 'SEMIANNUAL') &&
         (data.billingMonth == null || data.billingMonth < 1)

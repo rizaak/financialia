@@ -22,7 +22,7 @@ const borderSpin = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
-function VanAvatarRing() {
+function ViAvatarRing() {
   const reduce = useReducedMotion();
   return (
     <Box
@@ -32,7 +32,8 @@ function VanAvatarRing() {
         height: 40,
         borderRadius: '50%',
         p: '2px',
-        background: 'linear-gradient(120deg, #38bdf8, #a855f7, #34d399, #38bdf8)',
+        background:
+          'linear-gradient(120deg, #5b21b6 0%, #6d28d9 25%, #4f46e5 50%, #2563eb 75%, #0ea5e9 100%)',
         backgroundSize: reduce ? '100% 100%' : '220% 220%',
         animation: reduce ? undefined : `${borderSpin} 4s ease infinite`,
       }}
@@ -287,7 +288,7 @@ export function ChatInsightBubble({
 
   return (
     <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ maxWidth: '100%', alignSelf: 'flex-start' }}>
-      <VanAvatarRing />
+      <ViAvatarRing />
       {bubble}
     </Stack>
   );

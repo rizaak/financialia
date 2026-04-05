@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '@common/prisma/prisma.service';
 import type { CreateAccountDto } from './dto/create-account.dto';
+import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { UpdateCreditCardAccountDto } from './dto/update-credit-card-account.dto';
 import { addUtcDays, getPreviousClosingEnd, startOfUtcDay } from './credit-card-period.utils';
 import { FinancialService } from './financial.service';
@@ -320,6 +321,53 @@ export class AccountsService {
   }
 
   /**
+   * Actualiza nombre, estado y/o saldo (reconciliación) en cuentas no tarjeta.
+   * Para el nombre de tarjeta usa PATCH …/credit-card.
+   */
+  async updateAccount(userId: string, accountId: string, dto: UpdateAccountDto) {
+    const account = await this.assertAccountForUser(accountId, userId);
+
+    const hasStatus = dto.status !== undefined;
+    const hasName = dto.name !== undefined;
+    const hasBalance = dto.actualBalance !== undefined;
+
+    if (!hasStatus && !hasName && !hasBalance) {
+      throw new BadRequestException('Indica al menos un campo para actualizar.');
+    }
+
+    if (account.type === AccountType.CREDIT_CARD && hasName) {
+      throw new BadRequestException('Usa PATCH /accounts/:id/credit-card para el nombre de la tarjeta.');
+    }
+
+    const data: Prisma.AccountUpdateInput = {};
+    if (hasName) {
+      data.name = dto.name!.trim();
+    }
+    if (hasStatus) {
+      data.status = dto.status!;
+    }
+
+    if (Object.keys(data).length > 0) {
+      await this.prisma.account.update({
+        where: { id: accountId },
+        data,
+      });
+    }
+
+    if (hasBalance) {
+      await this.reconcileAccount(userId, accountId, dto.actualBalance!);
+    }
+
+    return this.prisma.account.findFirstOrThrow({
+      where: { id: accountId },
+      include: {
+        creditCard: true,
+        yieldStrategy: { include: { tiers: { orderBy: { sortOrder: 'asc' } } } },
+      },
+    });
+  }
+
+  /**
    * Actualiza alias, límite y/o CAT (tasa anual en fracción) de una tarjeta de crédito.
    */
   async updateCreditCardAccount(
@@ -330,7 +378,9 @@ export class AccountsService {
     const hasName = dto.name !== undefined;
     const hasLimit = dto.creditLimit !== undefined;
     const hasCat = dto.annualInterestRatePct !== undefined;
-    if (!hasName && !hasLimit && !hasCat) {
+    const hasClosing = dto.closingDay !== undefined;
+    const hasPaymentDue = dto.paymentDueDaysAfterClosing !== undefined;
+    if (!hasName && !hasLimit && !hasCat && !hasClosing && !hasPaymentDue) {
       throw new BadRequestException('Indica al menos un campo para actualizar.');
     }
 
@@ -354,6 +404,12 @@ export class AccountsService {
       const ccData: Prisma.CreditCardUpdateInput = {};
       if (hasCat) {
         ccData.annualInterestRatePct = new Prisma.Decimal(dto.annualInterestRatePct!);
+      }
+      if (hasClosing) {
+        ccData.closingDay = dto.closingDay!;
+      }
+      if (hasPaymentDue) {
+        ccData.paymentDueDaysAfterClosing = dto.paymentDueDaysAfterClosing!;
       }
 
       if (Object.keys(accountData).length > 0) {
