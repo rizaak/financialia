@@ -18,6 +18,13 @@ export type InstallmentPlanCommitmentRow = {
   status: string;
   currency: string;
   transactionId: string;
+  /** Presente en API reciente; ausente en respuestas antiguas. */
+  cashAdvanceKind?: 'IMMEDIATE_CASH_FIXED' | 'ATM_WITHDRAWAL' | null;
+  withdrawnAmount?: string | null;
+  dispositionFee?: string | null;
+  dailyRatePct?: string | null;
+  /** Solo deuda: no hubo ingreso a cuenta (capital ya en patrimonio). */
+  cashAdvanceDebtOnly?: boolean;
 };
 
 export type PatchInstallmentPlanBody = {

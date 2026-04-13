@@ -32,6 +32,7 @@ import { formatDashboardLoadError } from '../../lib/formatDashboardLoadError';
 import { formatMoney } from '../../lib/formatMoney';
 import { AdjustInstallmentPlanDialog } from './AdjustInstallmentPlanDialog';
 import { AdjustSubscriptionDialog } from './AdjustSubscriptionDialog';
+import { InstallmentProgressCell } from './InstallmentProgressCell';
 
 export type CommitmentsManageDialogProps = {
   open: boolean;
@@ -150,13 +151,14 @@ export function CommitmentsManageDialog({
                   <TableCell align="right">Cuota / mes</TableCell>
                   <TableCell align="center">Restantes</TableCell>
                   <TableCell align="right">Pendiente</TableCell>
+                  <TableCell align="center">Progreso</TableCell>
                   <TableCell align="right" width={200} />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <Typography variant="body2" color="text.secondary">
                         Cargando…
                       </Typography>
@@ -164,7 +166,7 @@ export function CommitmentsManageDialog({
                   </TableRow>
                 ) : msi.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <Typography variant="body2" color="text.secondary">
                         No hay MSI activos.
                       </Typography>
@@ -178,6 +180,9 @@ export function CommitmentsManageDialog({
                       <TableCell align="right">{formatMoney(row.monthlyAmount, row.currency)}</TableCell>
                       <TableCell align="center">{row.remainingInstallments}</TableCell>
                       <TableCell align="right">{formatMoney(row.remainingToPay, row.currency)}</TableCell>
+                      <TableCell align="center">
+                        <InstallmentProgressCell row={row} />
+                      </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="wrap">
                           <Button

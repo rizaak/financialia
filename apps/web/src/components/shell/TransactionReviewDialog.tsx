@@ -42,6 +42,7 @@ import {
 import { postInstallmentPlan } from '../../api/fetchCreditCard';
 import type { ParseNaturalLanguageResponse } from '../../api/fetchParseNaturalLanguage';
 import { useAccounts } from '../../hooks/useAccounts';
+import { useViVoiceOptional } from '../../hooks/useViVoice';
 import {
   VI_SUCCESS_EXPENSE_REGISTERED,
   VI_SUCCESS_INCOME_REGISTERED,
@@ -51,6 +52,13 @@ import {
 import { useTransactions } from '../../hooks/useTransactions';
 import { formatMoney } from '../../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../../lib/localCalendarRange';
+import {
+  phraseCardPaymentEncouragement,
+  phraseExpenseRegistered,
+  phraseIncomeRegistered,
+  phraseInvestmentRegistered,
+  phraseMsiRegistered,
+} from '../../lib/viVoicePhrases';
 import { normalizeMoneyInputTyping, parseMoneyInput } from '../../lib/parseMoneyInput';
 import { formGlassFieldSx } from '../shared/formGlassSx';
 
@@ -64,6 +72,8 @@ export type TransactionReviewDialogProps = {
   /** JSON devuelto por Vi (parse natural). */
   initialValues: ParseNaturalLanguageResponse | null;
   onSaved: () => void | Promise<void>;
+  /** Si true, tras guardar se usa speechSynthesis (solo cuando el flujo abrió el diálogo por voz). */
+  allowVoiceTts?: boolean;
 };
 
 function todayInputDate(): string {
@@ -103,7 +113,9 @@ export function TransactionReviewDialog({
   defaultCurrency,
   initialValues,
   onSaved,
+  allowVoiceTts = false,
 }: TransactionReviewDialogProps) {
+  const viVoice = useViVoiceOptional();
   const { postTransaction } = useTransactions(getAccessToken);
   const { accounts, accountsList, loading: accountsLoading, error: accountsStoreError, refresh: refreshAccounts } =
     useAccounts(getAccessToken);
@@ -280,6 +292,7 @@ export function TransactionReviewDialog({
           id,
           description: `${instMonths} meses · ${accLabel}`,
         });
+        if (allowVoiceTts) viVoice?.speak(phraseMsiRegistered(instMonths));
         onClose();
         await onSaved();
       } catch (e) {
@@ -317,6 +330,7 @@ export function TransactionReviewDialog({
           id,
           description: `Inversión de ${formatMoney(amt, curCode)} en ${accLabel}.`,
         });
+        if (allowVoiceTts) viVoice?.speak(phraseInvestmentRegistered());
         onClose();
         await onSaved();
       } catch (e) {
@@ -352,6 +366,19 @@ export function TransactionReviewDialog({
         loadingMessage: 'Guardando…',
       });
       if (result !== undefined) {
+        const catLabel = categories.find((c) => c.id === categoryId)?.name ?? 'tu categoría';
+        const acc = accounts.find((a) => a.id === accountId);
+        const amtLabel = formatMoney(amt, curCode);
+        const first = viVoice?.userFirstName ?? 'Inversor';
+        if (allowVoiceTts) {
+          if (kind === 'EXPENSE' && acc?.type === 'CREDIT_CARD') {
+            viVoice?.speak(phraseCardPaymentEncouragement(first));
+          } else if (kind === 'INCOME') {
+            viVoice?.speak(phraseIncomeRegistered(amtLabel, catLabel));
+          } else {
+            viVoice?.speak(phraseExpenseRegistered(amtLabel, catLabel));
+          }
+        }
         onClose();
         await onSaved();
       }

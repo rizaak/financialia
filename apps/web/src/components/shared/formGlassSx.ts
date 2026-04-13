@@ -22,3 +22,25 @@ export const formGlassSelectSx: SxProps<Theme> = {
   '& .MuiInputLabel-root': { color: 'text.secondary' },
   '& .MuiSvgIcon-root': { color: 'text.secondary' },
 };
+
+const cashAdvanceInputRoot = {
+  bgcolor: 'rgba(34, 211, 238, 0.07)',
+  '& fieldset': { borderColor: 'rgba(34, 211, 238, 0.22)' },
+  '&:hover fieldset': { borderColor: 'rgba(34, 211, 238, 0.35)' },
+  '&.Mui-focused:not(.Mui-error) fieldset': {
+    borderColor: '#22d3ee',
+    boxShadow: '0 0 0 1px rgba(34, 211, 238, 0.4)',
+  },
+} as const;
+
+/** Cristal con acento cian para disposiciones de efectivo / cajero. */
+export const cashAdvanceGlassFieldSx: SxProps<Theme> = {
+  '& .MuiOutlinedInput-root': { ...cashAdvanceInputRoot },
+  '& .MuiInputLabel-root': { color: 'text.secondary' },
+};
+
+export const cashAdvanceGlassSelectSx: SxProps<Theme> = {
+  '& .MuiOutlinedInput-root': { ...cashAdvanceInputRoot },
+  '& .MuiInputLabel-root': { color: 'text.secondary' },
+  '& .MuiSvgIcon-root': { color: 'text.secondary' },
+};
