@@ -20,6 +20,10 @@ export type CreditCardStatementApi = {
   lastStatementClosingDate: string | null;
   lastClosedStatementBalance: string;
   lastClosedStatementPaymentAmount: string;
+  /** Abonos a la tarjeta posteriores al último cierre (transferencias + ingresos). */
+  paymentsAppliedSinceLastClosing: string;
+  /** Pendiente del corte para evitar intereses tras descontar abonos (≥ 0). */
+  remainingLastStatementPaymentAmount: string;
   lastStatementPaymentDueDate: string | null;
   inPaymentWindow: boolean;
   paymentPastDue: boolean;

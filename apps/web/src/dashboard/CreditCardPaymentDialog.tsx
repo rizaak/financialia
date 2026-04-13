@@ -19,7 +19,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { AccountRow } from '../api/fetchAccounts';
 import { createTransfer } from '../api/fetchTransfers';
-import { VI_SUCCESS_MESSAGE } from '../config/brandConfig';
+import {
+  VI_CREDIT_PAYMENT_COVERED_STATEMENT,
+  VI_NAME,
+  VI_SUCCESS_MESSAGE,
+} from '../config/brandConfig';
 import { formatMoney } from '../lib/formatMoney';
 import { useFinanceStore } from '../stores/financeStore';
 
@@ -30,13 +34,18 @@ export type CreditCardPaymentDialogProps = {
   creditCardId: string;
   creditCardName: string;
   currency: string;
-  /** Pago sugerido (p. ej. monto del último corte + MSI). */
+  /** Pago sugerido (p. ej. pendiente del corte o saldo). */
   suggestedAmount: string;
+  /**
+   * Pendiente del último corte para no generar intereses (si aplica).
+   * Si se informa, el toast y onSuccess distinguen pago total del corte vs parcial.
+   */
+  statementRemainingAmount?: string;
   /** Deuda actual en la tarjeta (tope del pago). */
   maxPayAmount: string;
   /** Cuentas de débito (misma moneda). */
   debitAccounts: AccountRow[];
-  onSuccess?: () => void | Promise<void>;
+  onSuccess?: (info?: { statementFullyCovered: boolean }) => void | Promise<void>;
 };
 
 function parseMoney(s: string): number {
@@ -51,6 +60,7 @@ export function CreditCardPaymentDialog({
   creditCardName,
   currency,
   suggestedAmount,
+  statementRemainingAmount,
   maxPayAmount,
   debitAccounts,
   onSuccess,
@@ -118,11 +128,40 @@ export function CreditCardPaymentDialog({
         notes: `Pago tarjeta ${creditCardName}`,
       });
       await refreshBalancesAfterMutation(getAccessToken);
-      toast.success(VI_SUCCESS_MESSAGE, {
-        id: tid,
-        description: `Pago de ${formatMoney(amt, cur)} registrado.`,
-      });
-      await onSuccess?.();
+
+      const remainingBefore =
+        statementRemainingAmount != null
+          ? parseMoney(statementRemainingAmount)
+          : parseMoney(suggestedAmount);
+      const hasDue =
+        Number.isFinite(remainingBefore) && remainingBefore > 0.004;
+      const statementFullyCovered =
+        hasDue && Number.isFinite(amt) && amt + 1e-6 >= remainingBefore;
+
+      if (statementFullyCovered) {
+        toast.success(VI_NAME, {
+          id: tid,
+          description: VI_CREDIT_PAYMENT_COVERED_STATEMENT,
+          duration: 6500,
+        });
+      } else if (
+        statementRemainingAmount != null &&
+        hasDue &&
+        !statementFullyCovered
+      ) {
+        toast.success(VI_NAME, {
+          id: tid,
+          description: `Abono de ${formatMoney(amt, cur)} registrado. Aún hay pendiente del corte para acercarte al pago que evita intereses; el aviso se actualizará con lo que falta.`,
+          duration: 6500,
+        });
+      } else {
+        toast.success(VI_SUCCESS_MESSAGE, {
+          id: tid,
+          description: `Pago de ${formatMoney(amt, cur)} registrado.`,
+        });
+      }
+
+      await onSuccess?.({ statementFullyCovered });
       onClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'No se pudo registrar el pago.';
