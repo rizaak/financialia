@@ -20,6 +20,14 @@ export const VI_SUCCESS_INCOME_REGISTERED = 'Vi ha registrado tu ingreso con éx
 export const VI_SUCCESS_MSI_REGISTERED = 'Vi ha registrado tu MSI con éxito.';
 export const VI_SUCCESS_SUBSCRIPTION_REGISTERED = 'Vi ha registrado tu suscripción con éxito.';
 
+/** Tras cubrir el pago del corte para no generar intereses (tarjeta). */
+export const VI_CREDIT_PAYMENT_COVERED_STATEMENT =
+  '¡Excelente! He registrado tu pago. Tu límite de crédito se ha liberado en la Vidya Orb.';
+
+/** Vista de liquidez simplificada (gráfica vidrio en dashboard). */
+export const VI_LIQUIDITY_GLASS_INTRO =
+  'He simplificado tu vista. Ahora tienes claridad total sin distracciones.';
+
 /**
  * Gradiente del avatar Vi: púrpura profundo → azul eléctrico (sabiduría / claridad).
  */

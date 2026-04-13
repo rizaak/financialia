@@ -4,26 +4,26 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import SubscriptionsOutlinedIcon from '@mui/icons-material/SubscriptionsOutlined';
 import { Box, Button, Card, CardContent, Divider, Stack, Tooltip, Typography } from '@mui/material';
 import { Sparkles } from 'lucide-react';
-import { lazy, Suspense, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { FreeCashFlowBreakdown } from '../api/fetchAccounts';
 import { CommitmentsManageDialog } from '../components/commitments/CommitmentsManageDialog';
 import { MoneyText } from '../components/shared/MoneyText';
+import { VI_LIQUIDITY_GLASS_INTRO } from '../config/brandConfig';
 import type { DashboardDataSnapshot } from '../hooks/useDashboard';
 import { formatMoney } from '../lib/formatMoney';
-import type { LiquidityOrbTotals } from './vidyaOrb/VidyaLiquidityOrb';
-
-const VidyaLiquidityOrb = lazy(async () => {
-  const m = await import('./vidyaOrb/VidyaLiquidityOrb');
-  return { default: m.VidyaLiquidityOrb };
-});
+import {
+  LiquidityAvailableGlassBar,
+  VidyaGlassLiquidityChart,
+  type LiquidityGlassTotals,
+} from './VidyaGlassLiquidityChart';
 
 type Props = {
   data: DashboardDataSnapshot;
   getAccessToken: () => Promise<string>;
   onCommitmentsChanged: () => void | Promise<void>;
-  /** Totales para la Vidya Orb (bancos, carteras, inversiones a tramos). */
-  orbLiquidity?: LiquidityOrbTotals;
+  /** Totales para la dona (bancos, carteras, inversiones, deuda TC). */
+  liquidityGlassTotals?: LiquidityGlassTotals;
 };
 
 const deductionRows: Array<{
@@ -43,24 +43,22 @@ function isZeroish(s: string): boolean {
   return Number.isFinite(n) && Math.abs(n) < 0.005;
 }
 
-const VI_ORB_READY = 'Vidya Orb activa. Tu liquidez real está fluyendo.';
-
 export function FreeCashFlowHighlight({
   data,
   getAccessToken,
   onCommitmentsChanged,
-  orbLiquidity,
+  liquidityGlassTotals,
 }: Props) {
   const cur = data.defaultCurrency;
   const b = data.freeCashFlowBreakdown;
   const [manageOpen, setManageOpen] = useState(false);
-  const orbToastDone = useRef(false);
+  const glassToastDone = useRef(false);
 
-  const onOrbReady = () => {
-    if (orbToastDone.current) return;
-    orbToastDone.current = true;
-    toast.success('Vi', { description: VI_ORB_READY, duration: 5200 });
-  };
+  useEffect(() => {
+    if (!liquidityGlassTotals || glassToastDone.current) return;
+    glassToastDone.current = true;
+    toast.success('Vi', { description: VI_LIQUIDITY_GLASS_INTRO, duration: 5200 });
+  }, [liquidityGlassTotals]);
 
   return (
     <Card variant="outlined" className="col-span-12 overflow-hidden border-emerald-500/40 shadow-none">
@@ -72,8 +70,60 @@ export function FreeCashFlowHighlight({
             'linear-gradient(145deg, rgba(16,185,129,0.14) 0%, rgba(2,6,23,0.35) 42%, rgba(2,6,23,0.55) 100%)',
         }}
       >
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'flex-start' }} justifyContent="space-between">
-          <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+        {liquidityGlassTotals ? (
+          <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2.5, width: '100%' }}>
+            <LiquidityAvailableGlassBar
+              freeCashFlow={data.freeCashFlow}
+              totalLiquid={data.totalLiquid}
+              currencyCode={cur}
+            />
+          </Box>
+        ) : null}
+
+        {liquidityGlassTotals ? (
+          <Box
+            sx={{
+              display: { xs: 'none', sm: 'flex', md: 'none' },
+              justifyContent: 'center',
+              width: '100%',
+              mb: 2.5,
+            }}
+          >
+            <VidyaGlassLiquidityChart
+              totals={liquidityGlassTotals}
+              currencyCode={cur}
+              totalNetWorth={data.totalNetBalance}
+              density="compact"
+            />
+          </Box>
+        ) : null}
+
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={3}
+          alignItems={{ md: 'flex-start' }}
+          flexWrap="wrap"
+          useFlexGap
+        >
+          {liquidityGlassTotals ? (
+            <Box
+              sx={{
+                display: { xs: 'none', md: 'block' },
+                flexShrink: 0,
+                width: { md: 252 },
+                maxWidth: '100%',
+              }}
+            >
+              <VidyaGlassLiquidityChart
+                totals={liquidityGlassTotals}
+                currencyCode={cur}
+                totalNetWorth={data.totalNetBalance}
+                density="comfortable"
+              />
+            </Box>
+          ) : null}
+
+          <Stack spacing={2} sx={{ flex: '1 1 280px', minWidth: 0 }}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Box
                 sx={{
@@ -149,7 +199,7 @@ export function FreeCashFlowHighlight({
                           {zero ? (
                             <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                               <Box component="span" sx={{ color: 'success.main', fontSize: '1rem' }}>
-                                ✓
+                                {'\u2713'}
                               </Box>
                               {formatMoney(raw, cur)}
                             </Box>
@@ -168,33 +218,13 @@ export function FreeCashFlowHighlight({
           <Stack
             spacing={2}
             sx={{
+              flex: { md: '1 1 280px' },
+              minWidth: { md: 260 },
               width: '100%',
-              maxWidth: { sm: 400 },
-              flexShrink: 0,
-              alignItems: { xs: 'stretch', sm: 'flex-end' },
+              maxWidth: { md: 420 },
+              alignItems: { xs: 'stretch', md: 'stretch' },
             }}
           >
-            {orbLiquidity ? (
-              <Box sx={{ width: '100%', display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' } }}>
-                <Suspense
-                  fallback={
-                    <Box
-                      sx={{
-                        height: { xs: 260, md: 280 },
-                        width: '100%',
-                        maxWidth: 380,
-                        borderRadius: 2,
-                        border: 1,
-                        borderColor: 'divider',
-                        bgcolor: 'rgba(255,255,255,0.03)',
-                      }}
-                    />
-                  }
-                >
-                  <VidyaLiquidityOrb currencyCode={cur} totals={orbLiquidity} onSceneReady={onOrbReady} />
-                </Suspense>
-              </Box>
-            ) : null}
             <Box
               sx={{
                 width: '100%',
@@ -248,45 +278,45 @@ export function FreeCashFlowHighlight({
                   gap={1}
                   sx={{ flexWrap: 'wrap' }}
                 >
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  fontWeight={600}
-                  sx={{ textTransform: 'uppercase', letterSpacing: 0.03 }}
-                >
-                  Compromisos del mes
-                </Typography>
-                <Button size="small" variant="outlined" onClick={() => setManageOpen(true)} sx={{ flexShrink: 0 }}>
-                  Gestionar
-                </Button>
-              </Stack>
-              {deductionRows.map(({ key, label }) => {
-                const raw = b[key];
-                const zero = isZeroish(raw);
-                return (
-                  <Stack key={key} direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-                    <Typography variant="body2" color={zero ? 'text.disabled' : 'text.primary'} sx={{ pr: 1 }}>
-                      − {label}
-                    </Typography>
-                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
-                      {zero ? (
-                        <Typography component="span" sx={{ color: 'success.main', fontSize: '1rem', lineHeight: 1 }}>
-                          ✓
-                        </Typography>
-                      ) : null}
-                      <Typography
-                        variant="body2"
-                        fontWeight={600}
-                        color={zero ? 'text.disabled' : 'text.primary'}
-                        sx={{ fontVariantNumeric: 'tabular-nums' }}
-                      >
-                        <MoneyText>{formatMoney(raw, cur)}</MoneyText>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    fontWeight={600}
+                    sx={{ textTransform: 'uppercase', letterSpacing: 0.03 }}
+                  >
+                    Compromisos del mes
+                  </Typography>
+                  <Button size="small" variant="outlined" onClick={() => setManageOpen(true)} sx={{ flexShrink: 0 }}>
+                    Gestionar
+                  </Button>
+                </Stack>
+                {deductionRows.map(({ key, label }) => {
+                  const raw = b[key];
+                  const zero = isZeroish(raw);
+                  return (
+                    <Stack key={key} direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                      <Typography variant="body2" color={zero ? 'text.disabled' : 'text.primary'} sx={{ pr: 1 }}>
+                        − {label}
                       </Typography>
+                      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
+                        {zero ? (
+                          <Typography component="span" sx={{ color: 'success.main', fontSize: '1rem', lineHeight: 1 }}>
+                            {'\u2713'}
+                          </Typography>
+                        ) : null}
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          color={zero ? 'text.disabled' : 'text.primary'}
+                          sx={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
+                          <MoneyText>{formatMoney(raw, cur)}</MoneyText>
+                        </Typography>
+                      </Stack>
                     </Stack>
-                  </Stack>
-                );
-              })}
-            </Stack>
+                  );
+                })}
+              </Stack>
             </Box>
           </Stack>
         </Stack>
