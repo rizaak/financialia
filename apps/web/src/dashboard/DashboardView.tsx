@@ -13,6 +13,7 @@ import { AiFinancialAdvisor } from './AiFinancialAdvisor';
 import { AiInsightsWidget } from './AiInsightsWidget';
 import { BalanceSummaryCards } from './BalanceSummaryCards';
 import { FreeCashFlowHighlight } from './FreeCashFlowHighlight';
+import { DashboardActiveInstallmentsSection } from './DashboardActiveInstallmentsSection';
 import { DashboardCreditCardsStrip } from './DashboardCreditCardsStrip';
 import { DashboardPaymentCalendar } from './DashboardPaymentCalendar';
 import { BankBalancesRow } from './BankBalancesRow';
@@ -174,6 +175,8 @@ export function DashboardView({
                 onPaid={() => void refetch()}
               />
             ) : null}
+
+            <DashboardActiveInstallmentsSection getAccessToken={getAccessToken} defaultCurrency={cur} />
 
             <div className="col-span-12">
               <SectionCard title="Cuentas bancarias" subtitle="Saldo por cuenta (tipo banco, moneda por defecto)">

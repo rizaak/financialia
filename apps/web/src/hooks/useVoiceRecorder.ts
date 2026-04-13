@@ -18,6 +18,8 @@ export class VoiceRecorderPermissionError extends Error {
 export type UseVoiceRecorderReturn = {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
+  /** Detiene la captura sin generar audio ni enviar a la API. */
+  cancelRecording: () => void;
   isRecording: boolean;
   recordingTime: number;
   audioBlob: Blob | null;
@@ -48,6 +50,7 @@ export function useVoiceRecorder(options?: UseVoiceRecorderOptions): UseVoiceRec
   const chunksRef = useRef<Blob[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const discardOnStopRef = useRef(false);
   const mimeRef = useRef<string>('audio/webm');
   const timerRef = useRef<number | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
@@ -91,6 +94,7 @@ export function useVoiceRecorder(options?: UseVoiceRecorderOptions): UseVoiceRec
   const startRecording = useCallback(async () => {
     if (isRecording) return;
 
+    discardOnStopRef.current = false;
     setAudioBlob(null);
     clearTimer();
     setRecordingTime(0);
@@ -137,8 +141,14 @@ export function useVoiceRecorder(options?: UseVoiceRecorderOptions): UseVoiceRec
       recRef.current = null;
       setIsRecording(false);
 
+      const discard = discardOnStopRef.current;
+      discardOnStopRef.current = false;
+
       const blob = new Blob(chunksRef.current, { type: mimeRef.current });
       chunksRef.current = [];
+      if (discard) {
+        return;
+      }
       if (blob.size > 0) {
         setAudioBlob(blob);
       } else {
@@ -159,9 +169,27 @@ export function useVoiceRecorder(options?: UseVoiceRecorderOptions): UseVoiceRec
     }
   }, []);
 
+  const cancelRecording = useCallback(() => {
+    discardOnStopRef.current = true;
+    const r: MediaRecorder | null = recRef.current;
+    if (r && r.state !== 'inactive') {
+      r.stop();
+      return;
+    }
+    discardOnStopRef.current = false;
+    clearTimer();
+    stopMediaStreamTracks(streamRef.current);
+    streamRef.current = null;
+    recRef.current = null;
+    setIsRecording(false);
+    setRecordingTime(0);
+    chunksRef.current = [];
+  }, [clearTimer]);
+
   return {
     startRecording,
     stopRecording,
+    cancelRecording,
     isRecording,
     recordingTime,
     audioBlob,

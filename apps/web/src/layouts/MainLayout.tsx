@@ -29,6 +29,7 @@ import { ShellQuickActionsFab } from '../components/shell/ShellQuickActionsFab';
 import { VersionBadge } from '../components/version/VersionBadge';
 import { VanAssistant } from '../components/shell/VanAssistant';
 import { useVanSidebarStatus } from '../hooks/useVanSidebarStatus';
+import { ViVoiceProvider } from '../context/ViVoiceContext';
 import { useVersionUpdateCheck } from '../hooks/useVersionUpdateCheck';
 import { normalizeDisplayCurrency, type DisplayCurrency } from '../lib/displayCurrency';
 import { useFinanceStore } from '../stores/financeStore';
@@ -50,6 +51,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mini, setMini] = useState(false);
+  const [commandBarRecording, setCommandBarRecording] = useState(false);
   const [defaultCurrency, setDefaultCurrencyState] = useState<DisplayCurrency>('MXN');
   const balanceRevision = useFinanceStore((s) => s.balancesRevision);
   const hideBalances = usePrivacyStore((s) => s.hideBalances);
@@ -128,17 +130,17 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
   const vanSidebarStatus = useVanSidebarStatus();
   useVersionUpdateCheck();
 
-  const viHeaderGreeting = useMemo(() => {
+  const viVoiceUserFirstName = useMemo(() => {
     const nameFirst = user?.name?.trim().split(/\s+/)[0];
     const emailLocal = user?.email?.split('@')[0]?.trim();
-    let firstName = 'Inversor';
-    if (nameFirst) {
-      firstName = nameFirst;
-    } else if (emailLocal) {
-      firstName = emailLocal.charAt(0).toUpperCase() + emailLocal.slice(1).toLowerCase();
-    }
-    return `Bienvenido a tu centro de claridad, ${firstName}. Vidya.center está optimizando tus activos en tiempo real.`;
+    if (nameFirst) return nameFirst;
+    if (emailLocal) return emailLocal.charAt(0).toUpperCase() + emailLocal.slice(1).toLowerCase();
+    return 'Inversor';
   }, [user?.name, user?.email]);
+
+  const viHeaderGreeting = useMemo(() => {
+    return `Bienvenido a tu centro de claridad, ${viVoiceUserFirstName}. Vidya.center está optimizando tus activos en tiempo real.`;
+  }, [viVoiceUserFirstName]);
 
   function renderDrawerContent(showMini: boolean) {
     return (
@@ -154,6 +156,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
   }
 
   return (
+    <ViVoiceProvider userFirstName={viVoiceUserFirstName}>
     <Box
       sx={{
         display: 'flex',
@@ -207,7 +210,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
               {mini ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}
             </IconButton>
           )}
-          {!isMdUp ? (
+          {!isMdUp && !commandBarRecording ? (
             <Box
               sx={{
                 order: 2,
@@ -252,6 +255,8 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
                 {viHeaderGreeting}
               </Typography>
             </Box>
+          ) : !isMdUp && commandBarRecording ? (
+            <Box sx={{ order: 2, flex: '1 1 0%', minWidth: 0 }} aria-hidden />
           ) : null}
           {isMdUp ? (
             <Box
@@ -304,7 +309,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
             <Box
               sx={{
                 width: '100%',
-                maxWidth: 400,
+                maxWidth: { xs: commandBarRecording ? 'none' : 400, md: 400 },
                 ml: { md: 'auto' },
                 borderRadius: 9999,
                 overflow: 'hidden',
@@ -315,6 +320,7 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
                 defaultCurrency={defaultCurrency}
                 onTransactionSaved={notifyTransactionSaved}
                 variant="toolbar"
+                onRecordingChange={setCommandBarRecording}
               />
             </Box>
           </Box>
@@ -423,5 +429,6 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
       <FinancialChatDrawerTrigger getAccessToken={getAccessToken} />
       <ShellQuickActionsFab getAccessToken={getAccessToken} defaultCurrency={defaultCurrency} />
     </Box>
+    </ViVoiceProvider>
   );
 }
