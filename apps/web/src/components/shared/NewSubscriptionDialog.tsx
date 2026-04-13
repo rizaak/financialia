@@ -1,4 +1,4 @@
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import AddTaskIcon from '@mui/icons-material/AddTask';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Autocomplete,
@@ -24,12 +24,13 @@ import type { CategoryRow } from '../../api/categoryTypes';
 import { createRecurringExpense } from '../../api/fetchRecurringExpenses';
 import { useTransaction } from '../../hooks/useTransaction';
 import { formatMoney } from '../../lib/formatMoney';
-import { parseMoneyInput } from '../../lib/parseMoneyInput';
-import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
+import { normalizeMoneyInputTyping, parseMoneyInput } from '../../lib/parseMoneyInput';
+import { VI_SUCCESS_SUBSCRIPTION_REGISTERED } from '../../config/brandConfig';
 import {
   buildSubscriptionFormSchema,
   type SubscriptionFormValues,
 } from '../../lib/transactionDialogSchemas';
+import { formGlassFieldSx, formGlassOutlinedInputRoot, formGlassSelectSx } from './formGlassSx';
 
 export type NewSubscriptionDialogProps = {
   open: boolean;
@@ -53,34 +54,6 @@ function defaultBillingDay(): number {
   const d = new Date().getDate();
   return Math.min(31, Math.max(1, d));
 }
-
-/** Inputs con fondo oscuro y borde azul al enfocar (modo oscuro). */
-const glassFieldSx = {
-  '& .MuiOutlinedInput-root': {
-    bgcolor: 'rgba(255, 255, 255, 0.05)',
-    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.12)' },
-    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-    '&.Mui-focused:not(.Mui-error) fieldset': {
-      borderColor: '#3b82f6',
-      boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
-    },
-  },
-  '& .MuiInputLabel-root': { color: 'text.secondary' },
-} as const;
-
-const glassSelectSx = {
-  '& .MuiOutlinedInput-root': {
-    bgcolor: 'rgba(255, 255, 255, 0.05)',
-    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.12)' },
-    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-    '&.Mui-focused:not(.Mui-error) fieldset': {
-      borderColor: '#3b82f6',
-      boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
-    },
-  },
-  '& .MuiInputLabel-root': { color: 'text.secondary' },
-  '& .MuiSvgIcon-root': { color: 'text.secondary' },
-} as const;
 
 /**
  * Alta de suscripción recurrente: frecuencia de pago y día de cargo.
@@ -168,8 +141,8 @@ export function NewSubscriptionDialog({
         }),
       {
         loadingMessage: 'Creando suscripción…',
-        successMessage: VI_SUCCESS_MESSAGE,
-        successDescription: `Suscripción: ${values.name.trim()}`,
+        successMessage: VI_SUCCESS_SUBSCRIPTION_REGISTERED,
+        successDescription: values.name.trim(),
       },
     );
     if (result !== undefined) {
@@ -225,7 +198,7 @@ export function NewSubscriptionDialog({
                 error={Boolean(errors.name)}
                 helperText={errors.name?.message}
                 fullWidth
-                sx={glassFieldSx}
+                sx={formGlassFieldSx}
               />
             )}
           />
@@ -260,7 +233,7 @@ export function NewSubscriptionDialog({
                     label="Cuenta de cargo"
                     error={Boolean(errors.accountId)}
                     helperText={errors.accountId?.message}
-                    sx={glassFieldSx}
+                    sx={formGlassFieldSx}
                   />
                 )}
               />
@@ -283,7 +256,7 @@ export function NewSubscriptionDialog({
                     label="Categoría de gasto"
                     error={Boolean(errors.categoryId)}
                     helperText={errors.categoryId?.message}
-                    sx={glassFieldSx}
+                    sx={formGlassFieldSx}
                   />
                 )}
               />
@@ -308,11 +281,7 @@ export function NewSubscriptionDialog({
                   helperText={errors.amount?.message}
                   fullWidth
                   value={amtStr}
-                  onChange={(e) => {
-                    let v = e.target.value;
-                    v = v.replace(/,/g, '.');
-                    field.onChange(v);
-                  }}
+                  onChange={(e) => field.onChange(normalizeMoneyInputTyping(e.target.value))}
                   onFocus={(e) => {
                     const el = e.target as HTMLInputElement;
                     if (el.value === '') {
@@ -321,19 +290,15 @@ export function NewSubscriptionDialog({
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255, 255, 255, 0.05)',
-                      '& fieldset': {
-                        borderColor:
-                          hasTyping && !hasErr ? 'rgba(59, 130, 246, 0.55)' : 'rgba(255, 255, 255, 0.12)',
-                      },
-                      '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                      '&.Mui-focused:not(.Mui-error) fieldset': {
-                        borderColor: '#3b82f6',
-                        boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
-                      },
-                      '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': hasTyping
-                        ? { borderColor: 'rgba(59, 130, 246, 0.45)' }
-                        : {},
+                      ...formGlassOutlinedInputRoot,
+                      ...(hasTyping && !hasErr
+                        ? {
+                            '& fieldset': { borderColor: 'rgba(59, 130, 246, 0.55)' },
+                            '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': {
+                              borderColor: 'rgba(59, 130, 246, 0.45)',
+                            },
+                          }
+                        : {}),
                     },
                     '& .MuiInputLabel-root': { color: 'text.secondary' },
                   }}
@@ -346,7 +311,7 @@ export function NewSubscriptionDialog({
             name="frequency"
             control={control}
             render={({ field }) => (
-              <FormControl fullWidth error={Boolean(errors.frequency)} sx={glassSelectSx}>
+              <FormControl fullWidth error={Boolean(errors.frequency)} sx={formGlassSelectSx}>
                 <InputLabel id="sub-freq-label">Frecuencia de pago</InputLabel>
                 <Select labelId="sub-freq-label" label="Frecuencia de pago" {...field}>
                   <MenuItem value="DAILY">Diaria</MenuItem>
@@ -388,7 +353,7 @@ export function NewSubscriptionDialog({
                   error={Boolean(errors.billingDay)}
                   helperText={errors.billingDay?.message}
                   fullWidth
-                  sx={glassFieldSx}
+                  sx={formGlassFieldSx}
                   value={Number.isFinite(field.value) ? field.value : ''}
                   onChange={(e) => {
                     const n = parseInt(e.target.value, 10);
@@ -404,7 +369,7 @@ export function NewSubscriptionDialog({
               name="billingWeekday"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={Boolean(errors.billingWeekday)} sx={glassSelectSx}>
+                <FormControl fullWidth error={Boolean(errors.billingWeekday)} sx={formGlassSelectSx}>
                   <InputLabel id="sub-wd-label">Día de la semana del cargo</InputLabel>
                   <Select
                     labelId="sub-wd-label"
@@ -435,7 +400,7 @@ export function NewSubscriptionDialog({
               name="billingMonth"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={Boolean(errors.billingMonth)} sx={glassSelectSx}>
+                <FormControl fullWidth error={Boolean(errors.billingMonth)} sx={formGlassSelectSx}>
                   <InputLabel id="sub-month-label">
                     {frequency === 'SEMIANNUAL' ? 'Mes de referencia (cada 6 meses)' : 'Mes del cobro anual'}
                   </InputLabel>
@@ -502,7 +467,7 @@ export function NewSubscriptionDialog({
               type="submit"
               variant="contained"
               disabled={!isValid || isSubmitting}
-              startIcon={<NotificationsActiveIcon />}
+              startIcon={<AddTaskIcon />}
               sx={{
                 fontWeight: 700,
                 textTransform: 'none',
@@ -520,7 +485,7 @@ export function NewSubscriptionDialog({
                 },
               }}
             >
-              Guardar suscripción
+              Registrar suscripción
             </Button>
           </Stack>
         </Stack>
@@ -532,9 +497,15 @@ export function NewSubscriptionDialog({
           bgcolor: (t) => (t.palette.mode === 'dark' ? 'action.selected' : 'grey.50'),
           borderTop: 1,
           borderColor: 'divider',
+          justifyContent: 'flex-start',
         }}
       >
-        <Button onClick={onClose} color="inherit" fullWidth variant="outlined">
+        <Button
+          onClick={onClose}
+          color="inherit"
+          variant="text"
+          sx={{ textTransform: 'none', fontWeight: 500, color: 'text.secondary' }}
+        >
           Cerrar
         </Button>
       </DialogActions>

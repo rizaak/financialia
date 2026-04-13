@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
 import {
   AppBar,
   Badge,
@@ -127,6 +128,18 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
   const vanSidebarStatus = useVanSidebarStatus();
   useVersionUpdateCheck();
 
+  const viHeaderGreeting = useMemo(() => {
+    const nameFirst = user?.name?.trim().split(/\s+/)[0];
+    const emailLocal = user?.email?.split('@')[0]?.trim();
+    let firstName = 'Inversor';
+    if (nameFirst) {
+      firstName = nameFirst;
+    } else if (emailLocal) {
+      firstName = emailLocal.charAt(0).toUpperCase() + emailLocal.slice(1).toLowerCase();
+    }
+    return `Bienvenido a tu centro de claridad, ${firstName}. Vidya.center está optimizando tus activos en tiempo real.`;
+  }, [user?.name, user?.email]);
+
   function renderDrawerContent(showMini: boolean) {
     return (
       <Box sx={{ overflow: 'auto', height: '100%' }}>
@@ -197,26 +210,91 @@ export function MainLayout({ getAccessToken, user, onLogout, configHint }: Props
           {!isMdUp ? (
             <Box
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
                 order: 2,
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 0.25,
               }}
             >
-              <LogoVidya size={28} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LogoVidya size={28} />
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 500, letterSpacing: '0.08em', fontFamily: 'inherit' }}
+                >
+                  {APP_NAME}
+                </Typography>
+              </Box>
               <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 500, letterSpacing: '0.08em', fontFamily: 'inherit' }}
+                component="p"
+                variant="caption"
+                aria-label={`${viHeaderGreeting} Mensaje de Vi.`}
+                sx={(t) => ({
+                  m: 0,
+                  fontWeight: 500,
+                  lineHeight: 1.35,
+                  letterSpacing: '0.02em',
+                  color: alpha(t.palette.common.white, 0.9),
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textShadow: [
+                    `0 0 12px ${alpha(t.palette.primary.light, 0.45)}`,
+                    `0 0 24px ${alpha(t.palette.primary.main, 0.3)}`,
+                    `0 0 36px ${alpha(t.palette.info.main, 0.18)}`,
+                  ].join(', '),
+                })}
               >
-                {APP_NAME}
+                {viHeaderGreeting}
+              </Typography>
+            </Box>
+          ) : null}
+          {isMdUp ? (
+            <Box
+              sx={{
+                order: 2,
+                flex: '1 1 0%',
+                minWidth: 0,
+                display: 'flex',
+                alignItems: 'center',
+                px: { md: 0.5, lg: 1.5 },
+              }}
+            >
+              <Typography
+                component="p"
+                variant="body2"
+                aria-label={`${viHeaderGreeting} Mensaje de Vi.`}
+                sx={(t) => ({
+                  m: 0,
+                  fontWeight: 500,
+                  fontSize: { md: '0.8125rem', lg: '0.875rem' },
+                  lineHeight: 1.45,
+                  letterSpacing: '0.02em',
+                  color: alpha(t.palette.common.white, 0.92),
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textShadow: [
+                    `0 0 14px ${alpha(t.palette.primary.light, 0.5)}`,
+                    `0 0 28px ${alpha(t.palette.primary.main, 0.35)}`,
+                    `0 0 42px ${alpha(t.palette.info.main, 0.22)}`,
+                  ].join(', '),
+                })}
+              >
+                {viHeaderGreeting}
               </Typography>
             </Box>
           ) : null}
           <Box
             sx={{
               order: { xs: 4, md: 3 },
-              flex: { md: 1 },
-              flexBasis: { xs: '100%', md: 0 },
+              flex: { xs: '1 1 100%', md: '0 0 auto' },
+              flexBasis: { xs: '100%', md: 'auto' },
               display: 'flex',
               justifyContent: { xs: 'stretch', md: 'flex-end' },
               minWidth: 0,

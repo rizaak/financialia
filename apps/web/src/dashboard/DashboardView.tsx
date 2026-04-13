@@ -137,6 +137,11 @@ export function DashboardView({
               data={snapshot}
               getAccessToken={getAccessToken}
               onCommitmentsChanged={onCommitmentsChanged}
+              orbLiquidity={{
+                banks: accountsSummary.totalBanks,
+                wallets: accountsSummary.totalWallets,
+                investments: accountsSummary.totalInvestedTiered,
+              }}
             />
             <BalanceSummaryCards data={snapshot} />
 

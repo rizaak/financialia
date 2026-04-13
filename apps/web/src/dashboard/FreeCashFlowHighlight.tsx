@@ -4,17 +4,26 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import SubscriptionsOutlinedIcon from '@mui/icons-material/SubscriptionsOutlined';
 import { Box, Button, Card, CardContent, Divider, Stack, Tooltip, Typography } from '@mui/material';
 import { Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type { FreeCashFlowBreakdown } from '../api/fetchAccounts';
 import { CommitmentsManageDialog } from '../components/commitments/CommitmentsManageDialog';
 import { MoneyText } from '../components/shared/MoneyText';
 import type { DashboardDataSnapshot } from '../hooks/useDashboard';
 import { formatMoney } from '../lib/formatMoney';
+import type { LiquidityOrbTotals } from './vidyaOrb/VidyaLiquidityOrb';
+
+const VidyaLiquidityOrb = lazy(async () => {
+  const m = await import('./vidyaOrb/VidyaLiquidityOrb');
+  return { default: m.VidyaLiquidityOrb };
+});
 
 type Props = {
   data: DashboardDataSnapshot;
   getAccessToken: () => Promise<string>;
   onCommitmentsChanged: () => void | Promise<void>;
+  /** Totales para la Vidya Orb (bancos, carteras, inversiones a tramos). */
+  orbLiquidity?: LiquidityOrbTotals;
 };
 
 const deductionRows: Array<{
@@ -34,10 +43,24 @@ function isZeroish(s: string): boolean {
   return Number.isFinite(n) && Math.abs(n) < 0.005;
 }
 
-export function FreeCashFlowHighlight({ data, getAccessToken, onCommitmentsChanged }: Props) {
+const VI_ORB_READY = 'Vidya Orb activa. Tu liquidez real está fluyendo.';
+
+export function FreeCashFlowHighlight({
+  data,
+  getAccessToken,
+  onCommitmentsChanged,
+  orbLiquidity,
+}: Props) {
   const cur = data.defaultCurrency;
   const b = data.freeCashFlowBreakdown;
   const [manageOpen, setManageOpen] = useState(false);
+  const orbToastDone = useRef(false);
+
+  const onOrbReady = () => {
+    if (orbToastDone.current) return;
+    orbToastDone.current = true;
+    toast.success('Vi', { description: VI_ORB_READY, duration: 5200 });
+  };
 
   return (
     <Card variant="outlined" className="col-span-12 overflow-hidden border-emerald-500/40 shadow-none">
@@ -142,50 +165,89 @@ export function FreeCashFlowHighlight({ data, getAccessToken, onCommitmentsChang
             </Box>
           </Stack>
 
-          <Box
+          <Stack
+            spacing={2}
             sx={{
               width: '100%',
-              maxWidth: { sm: 340 },
+              maxWidth: { sm: 400 },
               flexShrink: 0,
-              borderRadius: 2,
-              border: 1,
-              borderColor: 'divider',
-              bgcolor: 'rgba(255,255,255,0.04)',
-              px: 2,
-              py: 1.75,
+              alignItems: { xs: 'stretch', sm: 'flex-end' },
             }}
           >
-            <Stack spacing={1.25} sx={{ m: 0 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
-                <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                  En bancos
-                </Typography>
-                <Typography variant="body2" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                  <MoneyText>{formatMoney(b.bankBalance, cur)}</MoneyText>
-                </Typography>
-              </Stack>
-              {!isZeroish(b.liquidTieredPrincipal) ? (
+            {orbLiquidity ? (
+              <Box sx={{ width: '100%', display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' } }}>
+                <Suspense
+                  fallback={
+                    <Box
+                      sx={{
+                        height: { xs: 260, md: 280 },
+                        width: '100%',
+                        maxWidth: 380,
+                        borderRadius: 2,
+                        border: 1,
+                        borderColor: 'divider',
+                        bgcolor: 'rgba(255,255,255,0.03)',
+                      }}
+                    />
+                  }
+                >
+                  <VidyaLiquidityOrb currencyCode={cur} totals={orbLiquidity} onSceneReady={onOrbReady} />
+                </Suspense>
+              </Box>
+            ) : null}
+            <Box
+              sx={{
+                width: '100%',
+                borderRadius: 2,
+                border: 1,
+                borderColor: 'divider',
+                bgcolor: 'rgba(255,255,255,0.04)',
+                px: 2,
+                py: 1.75,
+              }}
+            >
+              <Stack spacing={1.25} sx={{ m: 0 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
                   <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                    Inversión líquida (tramos)
+                    En bancos
                   </Typography>
                   <Typography variant="body2" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                    <MoneyText>{formatMoney(b.liquidTieredPrincipal, cur)}</MoneyText>
+                    <MoneyText>{formatMoney(b.bankBalance, cur)}</MoneyText>
                   </Typography>
                 </Stack>
-              ) : null}
-              {!isZeroish(b.frozenTieredPrincipal) ? (
-                <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
-                  <Typography variant="body2" color="warning.dark" fontWeight={600}>
-                    Congelado en tramos
-                  </Typography>
-                  <Typography variant="body2" fontWeight={700} color="warning.dark" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                    <MoneyText>{formatMoney(b.frozenTieredPrincipal, cur)}</MoneyText>
-                  </Typography>
-                </Stack>
-              ) : null}
-              <Divider sx={{ borderStyle: 'dashed' }} />
-              <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ flexWrap: 'wrap' }}>
+                {!isZeroish(b.liquidTieredPrincipal) ? (
+                  <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                      Inversión líquida (tramos)
+                    </Typography>
+                    <Typography variant="body2" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <MoneyText>{formatMoney(b.liquidTieredPrincipal, cur)}</MoneyText>
+                    </Typography>
+                  </Stack>
+                ) : null}
+                {!isZeroish(b.frozenTieredPrincipal) ? (
+                  <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+                    <Typography variant="body2" color="warning.dark" fontWeight={600}>
+                      Congelado en tramos
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      color="warning.dark"
+                      sx={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      <MoneyText>{formatMoney(b.frozenTieredPrincipal, cur)}</MoneyText>
+                    </Typography>
+                  </Stack>
+                ) : null}
+                <Divider sx={{ borderStyle: 'dashed' }} />
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  gap={1}
+                  sx={{ flexWrap: 'wrap' }}
+                >
                 <Typography
                   variant="caption"
                   color="text.secondary"
@@ -225,7 +287,8 @@ export function FreeCashFlowHighlight({ data, getAccessToken, onCommitmentsChang
                 );
               })}
             </Stack>
-          </Box>
+            </Box>
+          </Stack>
         </Stack>
       </CardContent>
       <CommitmentsManageDialog
