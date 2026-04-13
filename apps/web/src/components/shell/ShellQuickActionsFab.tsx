@@ -1,6 +1,6 @@
 import { Fab, Menu, MenuItem, useTheme } from '@mui/material';
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { ArrowLeftRight, CalendarClock, Plus, Repeat, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeftRight, CalendarClock, Plus, Receipt, Repeat, TrendingUp } from 'lucide-react';
 import type { CategoryRow } from '../../api/categoryTypes';
 import { fetchAccounts, type AccountRow } from '../../api/fetchAccounts';
 import { fetchCategories } from '../../api/fetchCategories';
@@ -121,8 +121,8 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           onClick={() => openTransactionDialog('expense')}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
-          <span className="mr-2 inline-flex text-emerald-400">
-            <TrendingDown size={18} />
+          <span className="mr-2 inline-flex text-[#3b82f6]">
+            <Receipt size={18} strokeWidth={2} />
           </span>
           Registrar gasto
         </MenuItem>
@@ -157,8 +157,8 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           onClick={() => openSubscriptionDialog()}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
-          <span className="mr-2 inline-flex text-rose-400">
-            <Repeat size={18} />
+          <span className="mr-2 inline-flex text-[#3b82f6]">
+            <Repeat size={18} strokeWidth={2} />
           </span>
           Nueva suscripción
         </MenuItem>

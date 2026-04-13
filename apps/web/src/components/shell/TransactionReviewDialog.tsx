@@ -42,10 +42,17 @@ import {
 import { postInstallmentPlan } from '../../api/fetchCreditCard';
 import type { ParseNaturalLanguageResponse } from '../../api/fetchParseNaturalLanguage';
 import { useAccounts } from '../../hooks/useAccounts';
-import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
+import {
+  VI_SUCCESS_EXPENSE_REGISTERED,
+  VI_SUCCESS_INCOME_REGISTERED,
+  VI_SUCCESS_MESSAGE,
+  VI_SUCCESS_MSI_REGISTERED,
+} from '../../config/brandConfig';
 import { useTransactions } from '../../hooks/useTransactions';
 import { formatMoney } from '../../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../../lib/localCalendarRange';
+import { normalizeMoneyInputTyping, parseMoneyInput } from '../../lib/parseMoneyInput';
+import { formGlassFieldSx } from '../shared/formGlassSx';
 
 type TxKind = 'EXPENSE' | 'INCOME';
 
@@ -54,7 +61,7 @@ export type TransactionReviewDialogProps = {
   onClose: () => void;
   getAccessToken: () => Promise<string>;
   defaultCurrency: string;
-  /** JSON devuelto por la IA (parse natural). */
+  /** JSON devuelto por Vi (parse natural). */
   initialValues: ParseNaturalLanguageResponse | null;
   onSaved: () => void | Promise<void>;
 };
@@ -67,7 +74,7 @@ function todayInputDate(): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Tipo de movimiento inferido por la IA (incluye INVESTMENT). */
+/** Tipo de movimiento inferido por Vi (incluye INVESTMENT). */
 function resolveAiTransactionType(p: ParseNaturalLanguageResponse | null): 'EXPENSE' | 'INCOME' | 'INVESTMENT' {
   if (!p) return 'EXPENSE';
   if (p.aiTransactionType) return p.aiTransactionType;
@@ -230,7 +237,7 @@ export function TransactionReviewDialog({
 
   const handleConfirm = async () => {
     setFormError(null);
-    const amt = Number(String(amount).replace(/,/g, ''));
+    const amt = parseMoneyInput(amount);
     if (!Number.isFinite(amt) || amt <= 0) {
       setFormError('Indica un monto válido.');
       return;
@@ -269,9 +276,9 @@ export function TransactionReviewDialog({
           description: description.trim() || undefined,
         });
         const accLabel = accounts.find((a) => a.id === accountId)?.name ?? 'tu tarjeta';
-        toast.success(VI_SUCCESS_MESSAGE, {
+        toast.success(VI_SUCCESS_MSI_REGISTERED, {
           id,
-          description: `Compra a ${instMonths} meses en ${accLabel} (impacto mensual en gastos).`,
+          description: `${instMonths} meses · ${accLabel}`,
         });
         onClose();
         await onSaved();
@@ -327,7 +334,6 @@ export function TransactionReviewDialog({
 
     setSubmitting(true);
     const accountLabel = accounts.find((a) => a.id === accountId)?.name ?? 'tu cuenta';
-    const verb = kind === 'INCOME' ? 'ingreso' : 'gasto';
     const payload: CreateTransactionPayload = {
       accountId,
       categoryId,
@@ -340,8 +346,9 @@ export function TransactionReviewDialog({
     };
     try {
       const result = await postTransaction(payload, {
-        successMessage: VI_SUCCESS_MESSAGE,
-        successDescription: `${verb === 'ingreso' ? 'Ingreso' : 'Gasto'} de ${formatMoney(amt, curCode)} en ${accountLabel}.`,
+        successMessage:
+          kind === 'INCOME' ? VI_SUCCESS_INCOME_REGISTERED : VI_SUCCESS_EXPENSE_REGISTERED,
+        successDescription: `${formatMoney(amt, curCode)} · ${accountLabel}`,
         loadingMessage: 'Guardando…',
       });
       if (result !== undefined) {
@@ -410,7 +417,7 @@ export function TransactionReviewDialog({
                     />
                   ) : null}
                   <AiCell label="Descripción" value={initialValues.description || '—'} />
-                  <AiCell label="Categoría (IA)" value={initialValues.category || '—'} />
+                  <AiCell label="Categoría (Vi)" value={initialValues.category || '—'} />
                   <AiCell
                     label="Cuenta detectada"
                     value={initialValues.targetAccount ?? '— (sin coincidencia clara)'}
@@ -440,12 +447,15 @@ export function TransactionReviewDialog({
 
                 <TextField
                   label="Monto"
-                  type="number"
-                  inputProps={{ step: 'any', min: 0 }}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="$0.00"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => setAmount(normalizeMoneyInputTyping(e.target.value))}
                   fullWidth
                   required
+                  sx={formGlassFieldSx}
                 />
 
                 <TextField
@@ -484,7 +494,7 @@ export function TransactionReviewDialog({
                     <Chip
                       size="small"
                       icon={<CheckCircle2 size={14} aria-hidden />}
-                      label="Seleccionada automáticamente (coincide con la IA)"
+                      label="Seleccionada automáticamente (coincide con Vi)"
                       color="success"
                       variant="outlined"
                       sx={{ mt: 1 }}
@@ -513,7 +523,7 @@ export function TransactionReviewDialog({
                 {resolveAiTransactionType(initialValues) === 'INVESTMENT' ? (
                   <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'action.hover' }}>
                     <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5 }}>
-                      Tramos de interés (según la IA)
+                      Tramos de interés (según Vi)
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Si lo deseas, abre una inversión por tramos usando una estrategia ya definida (mismas tasas y
@@ -630,7 +640,7 @@ export function TransactionReviewDialog({
           variant="contained"
           onClick={() => void handleConfirm()}
           disabled={submitting}
-          className="!bg-emerald-600 hover:!bg-emerald-700 !text-white !normal-case shadow-sm"
+          className="!normal-case !bg-gradient-to-r !from-[#3b82f6] !to-[#2563eb] !text-white hover:!from-[#60a5fa] hover:!to-[#3b82f6] !shadow-[0_4px_14px_rgba(59,130,246,0.45)]"
         >
           {submitting ? 'Guardando…' : 'Confirmar registro'}
         </Button>

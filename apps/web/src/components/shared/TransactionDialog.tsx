@@ -25,8 +25,12 @@ import { useTransactions } from '../../hooks/useTransactions';
 import { availableForExpense } from '../../lib/accountAvailableForExpense';
 import { formatMoney } from '../../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../../lib/localCalendarRange';
-import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
-import { parseMoneyInput } from '../../lib/parseMoneyInput';
+import {
+  VI_SUCCESS_EXPENSE_REGISTERED,
+  VI_SUCCESS_INCOME_REGISTERED,
+  VI_SUCCESS_MESSAGE,
+} from '../../config/brandConfig';
+import { normalizeMoneyInputTyping, parseMoneyInput } from '../../lib/parseMoneyInput';
 import {
   buildExpenseIncomeSchema,
   buildTransferSchema,
@@ -34,6 +38,11 @@ import {
   type TransferFormValues,
 } from '../../lib/transactionDialogSchemas';
 import { CustomButton } from './CustomButton';
+import {
+  formGlassFieldSx,
+  formGlassOutlinedInputRoot,
+  formGlassSelectSx,
+} from './formGlassSx';
 
 const expensePrimaryButtonSx = {
   fontWeight: 700,
@@ -175,9 +184,15 @@ export function TransactionDialog({
           bgcolor: (t) => (t.palette.mode === 'dark' ? 'action.selected' : 'grey.50'),
           borderTop: 1,
           borderColor: 'divider',
+          justifyContent: 'flex-start',
         }}
       >
-        <Button onClick={onClose} color="inherit" fullWidth variant="outlined">
+        <Button
+          onClick={onClose}
+          color="inherit"
+          variant="text"
+          sx={{ textTransform: 'none', fontWeight: 500, color: 'text.secondary' }}
+        >
           Cerrar
         </Button>
       </DialogActions>
@@ -282,11 +297,12 @@ function ExpenseIncomeDialogBody({
       },
       {
         loadingMessage: kind === 'EXPENSE' ? 'Guardando gasto…' : 'Guardando ingreso…',
-        successMessage: VI_SUCCESS_MESSAGE,
+        successMessage:
+          kind === 'EXPENSE' ? VI_SUCCESS_EXPENSE_REGISTERED : VI_SUCCESS_INCOME_REGISTERED,
         successDescription:
           kind === 'EXPENSE'
-            ? 'He actualizado tu saldo disponible.'
-            : `Ingreso en ${acc?.name ?? 'la cuenta'}: ${values.concept.trim()}`,
+            ? `${values.concept.trim()} · ${acc?.name ?? 'cuenta'}`
+            : `${values.concept.trim()} · ${acc?.name ?? 'cuenta'}`,
       },
     );
     if (result !== undefined) {
@@ -332,6 +348,7 @@ function ExpenseIncomeDialogBody({
                 label={kind === 'EXPENSE' ? 'Cuenta de origen' : 'Cuenta'}
                 error={Boolean(errors.accountId)}
                 helperText={errors.accountId?.message}
+                sx={formGlassFieldSx}
               />
             )}
           />
@@ -355,6 +372,7 @@ function ExpenseIncomeDialogBody({
                   label="Categoría"
                   error={Boolean(errors.categoryId)}
                   helperText={errors.categoryId?.message}
+                  sx={formGlassFieldSx}
                 />
               )}
             />
@@ -365,7 +383,7 @@ function ExpenseIncomeDialogBody({
           name="categoryId"
           control={control}
           render={({ field }) => (
-            <FormControl fullWidth error={Boolean(errors.categoryId)}>
+            <FormControl fullWidth error={Boolean(errors.categoryId)} sx={formGlassSelectSx}>
               <InputLabel id="cat-label">Categoría</InputLabel>
               <Select labelId="cat-label" label="Categoría" {...field}>
                 {sortedCatOptions.map((c) => (
@@ -402,11 +420,7 @@ function ExpenseIncomeDialogBody({
               helperText={errors.amount?.message}
               fullWidth
               value={amtStr}
-              onChange={(e) => {
-                let v = e.target.value;
-                v = v.replace(/,/g, '.');
-                field.onChange(v);
-              }}
+              onChange={(e) => field.onChange(normalizeMoneyInputTyping(e.target.value))}
               onFocus={(e) => {
                 const el = e.target as HTMLInputElement;
                 if (el.value === '') {
@@ -415,19 +429,15 @@ function ExpenseIncomeDialogBody({
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  bgcolor: 'rgba(255, 255, 255, 0.05)',
-                  '& fieldset': {
-                    borderColor:
-                      hasTyping && !hasErr ? 'rgba(59, 130, 246, 0.55)' : 'rgba(255, 255, 255, 0.12)',
-                  },
-                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  '&.Mui-focused:not(.Mui-error) fieldset': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
-                  },
-                  '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': hasTyping
-                    ? { borderColor: 'rgba(59, 130, 246, 0.45)' }
-                    : {},
+                  ...formGlassOutlinedInputRoot,
+                  ...(hasTyping && !hasErr
+                    ? {
+                        '& fieldset': { borderColor: 'rgba(59, 130, 246, 0.55)' },
+                        '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': {
+                          borderColor: 'rgba(59, 130, 246, 0.45)',
+                        },
+                      }
+                    : {}),
                 },
                 '& .MuiInputLabel-root': { color: 'text.secondary' },
               }}
@@ -451,19 +461,29 @@ function ExpenseIncomeDialogBody({
             error={Boolean(errors.concept)}
             helperText={errors.concept?.message}
             fullWidth
+            sx={formGlassFieldSx}
           />
         )}
       />
       <Controller
         name="notes"
         control={control}
-        render={({ field }) => <TextField {...field} label="Notas (opcional)" fullWidth />}
+        render={({ field }) => (
+          <TextField {...field} label="Notas (opcional)" fullWidth sx={formGlassFieldSx} />
+        )}
       />
       <Controller
         name="occurredAt"
         control={control}
         render={({ field }) => (
-          <TextField {...field} type="date" label="Fecha" InputLabelProps={{ shrink: true }} fullWidth />
+          <TextField
+            {...field}
+            type="date"
+            label="Fecha"
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            sx={formGlassFieldSx}
+          />
         )}
       />
       <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center" sx={{ pt: 1 }}>
@@ -497,11 +517,7 @@ function ExpenseIncomeDialogBody({
             Registrar gasto
           </Button>
         ) : (
-          <CustomButton
-            type="submit"
-            operationVariant="income"
-            disabled={!isValid || isSubmitting}
-          >
+          <CustomButton type="submit" operationVariant="income" disabled={!isValid || isSubmitting}>
             Registrar ingreso
           </CustomButton>
         )}
@@ -605,7 +621,12 @@ function TransferDialogBody({
               </li>
             )}
             renderInput={(params) => (
-              <TextField {...params} label="Desde" error={Boolean(errors.fromAccountId)} />
+              <TextField
+                {...params}
+                label="Desde"
+                error={Boolean(errors.fromAccountId)}
+                sx={formGlassFieldSx}
+              />
             )}
           />
         )}
@@ -635,7 +656,12 @@ function TransferDialogBody({
               </li>
             )}
             renderInput={(params) => (
-              <TextField {...params} label="Hacia" error={Boolean(errors.toAccountId)} />
+              <TextField
+                {...params}
+                label="Hacia"
+                error={Boolean(errors.toAccountId)}
+                sx={formGlassFieldSx}
+              />
             )}
           />
         )}
@@ -646,16 +672,22 @@ function TransferDialogBody({
         render={({ field }) => (
           <TextField
             type="number"
-            inputProps={{ step: '0.01', min: 0 }}
+            inputProps={{ step: '0.01', min: 0, inputMode: 'decimal' }}
             label="Monto"
             error={Boolean(errors.amount)}
             helperText={errors.amount?.message}
             fullWidth
-            value={Number.isFinite(field.value) ? field.value : ''}
+            value={field.value > 0 ? field.value : ''}
             onChange={(e) => {
-              const n = parseFloat(e.target.value);
+              const raw = e.target.value;
+              if (raw === '') {
+                field.onChange(0);
+                return;
+              }
+              const n = parseFloat(normalizeMoneyInputTyping(raw));
               field.onChange(Number.isFinite(n) ? n : 0);
             }}
+            sx={formGlassFieldSx}
           />
         )}
       />
@@ -665,31 +697,54 @@ function TransferDialogBody({
         render={({ field }) => (
           <TextField
             type="number"
-            inputProps={{ step: '0.01', min: 0 }}
+            inputProps={{ step: '0.01', min: 0, inputMode: 'decimal' }}
             label="Comisión (opcional)"
+            placeholder="$0.00"
             fullWidth
-            value={field.value === undefined || field.value === null ? '' : field.value}
+            value={(field.value ?? 0) > 0 ? field.value : ''}
             onChange={(e) => {
-              const n = parseFloat(e.target.value);
+              const raw = e.target.value;
+              if (raw === '') {
+                field.onChange(0);
+                return;
+              }
+              const n = parseFloat(normalizeMoneyInputTyping(raw));
               field.onChange(Number.isFinite(n) ? n : 0);
             }}
+            sx={formGlassFieldSx}
           />
         )}
       />
       <Controller
         name="notes"
         control={control}
-        render={({ field }) => <TextField {...field} label="Notas (opcional)" fullWidth />}
+        render={({ field }) => (
+          <TextField {...field} label="Notas (opcional)" fullWidth sx={formGlassFieldSx} />
+        )}
       />
       <Controller
         name="occurredAt"
         control={control}
         render={({ field }) => (
-          <TextField {...field} type="date" label="Fecha" InputLabelProps={{ shrink: true }} fullWidth />
+          <TextField
+            {...field}
+            type="date"
+            label="Fecha"
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            sx={formGlassFieldSx}
+          />
         )}
       />
       <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ pt: 1 }}>
-        <Button type="button" onClick={() => form.reset()} color="inherit">
+        <Button
+          type="button"
+          onClick={() => form.reset()}
+          color="inherit"
+          variant="text"
+          size="small"
+          sx={{ fontWeight: 500, color: 'text.secondary', textTransform: 'none', minWidth: 'auto' }}
+        >
           Limpiar
         </Button>
         <CustomButton type="submit" operationVariant="transfer" disabled={!isValid || isSubmitting}>

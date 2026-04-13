@@ -14,6 +14,12 @@ export const VI_WELCOME = 'Hola, soy Vi. Tu guía en Vidya.';
 /** Toast de éxito unificado cuando una operación se completa correctamente. */
 export const VI_SUCCESS_MESSAGE = 'Vi ha procesado tu solicitud con éxito.';
 
+/** Toasts específicos tras registrar movimientos manuales (Gastos / MSI / Suscripciones). */
+export const VI_SUCCESS_EXPENSE_REGISTERED = 'Vi ha registrado tu gasto con éxito.';
+export const VI_SUCCESS_INCOME_REGISTERED = 'Vi ha registrado tu ingreso con éxito.';
+export const VI_SUCCESS_MSI_REGISTERED = 'Vi ha registrado tu MSI con éxito.';
+export const VI_SUCCESS_SUBSCRIPTION_REGISTERED = 'Vi ha registrado tu suscripción con éxito.';
+
 /**
  * Gradiente del avatar Vi: púrpura profundo → azul eléctrico (sabiduría / claridad).
  */

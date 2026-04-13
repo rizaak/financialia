@@ -17,8 +17,8 @@ import {
   ArrowLeftRight,
   CalendarClock,
   Pencil,
+  Receipt,
   Repeat,
-  TrendingDown,
   TrendingUp,
   Wallet,
 } from 'lucide-react';
@@ -317,7 +317,7 @@ export function RegisterPage() {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid size={{ xs: 12, sm: 4 }}>
                 <RegisterStatMini
-                  icon={<TrendingDown size={28} strokeWidth={2} />}
+                  icon={<Receipt size={28} strokeWidth={2} />}
                   label="Gastos del día"
                   value={formatMoney(expenseToday, defaultCurrency)}
                 />
@@ -351,8 +351,8 @@ export function RegisterPage() {
                 <Card elevation={0} sx={ACTION_CARD_SX}>
                   <CardActionArea onClick={() => openTransaction('expense')} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
                     <Stack spacing={1.25}>
-                      <Box sx={{ color: 'success.main' }}>
-                        <TrendingDown size={40} strokeWidth={2} />
+                      <Box sx={{ color: 'primary.main' }}>
+                        <Receipt size={40} strokeWidth={2} />
                       </Box>
                       <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
                         Gasto
@@ -402,7 +402,7 @@ export function RegisterPage() {
                 <Card elevation={0} sx={ACTION_CARD_SX}>
                   <CardActionArea onClick={() => setFabDialog({ kind: 'msi' })} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
                     <Stack spacing={1.25}>
-                      <Box sx={{ color: 'warning.main' }}>
+                      <Box sx={{ color: 'primary.main' }}>
                         <CalendarClock size={40} strokeWidth={2} />
                       </Box>
                       <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
@@ -419,7 +419,7 @@ export function RegisterPage() {
                 <Card elevation={0} sx={ACTION_CARD_SX}>
                   <CardActionArea onClick={() => setFabDialog({ kind: 'subscription' })} sx={{ p: 2.5, alignItems: 'stretch', minHeight: 168 }}>
                     <Stack spacing={1.25}>
-                      <Box sx={{ color: 'error.main' }}>
+                      <Box sx={{ color: 'primary.main' }}>
                         <Repeat size={40} strokeWidth={2} />
                       </Box>
                       <Typography variant="h6" fontWeight={800} sx={{ color: '#ffffff' }}>
