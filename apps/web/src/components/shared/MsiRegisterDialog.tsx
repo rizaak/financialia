@@ -1,4 +1,4 @@
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckIcon from '@mui/icons-material/Check';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Autocomplete,
@@ -17,15 +17,16 @@ import { useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import type { AccountRow } from '../../api/fetchAccounts';
 import type { CategoryRow } from '../../api/categoryTypes';
-import { VI_SUCCESS_MESSAGE } from '../../config/brandConfig';
+import { VI_SUCCESS_MSI_REGISTERED } from '../../config/brandConfig';
 import { useTransactions } from '../../hooks/useTransactions';
 import { formatMoney } from '../../lib/formatMoney';
 import { localDateInputToIsoMidday } from '../../lib/localCalendarRange';
-import { parseMoneyInput } from '../../lib/parseMoneyInput';
+import { normalizeMoneyInputTyping, parseMoneyInput } from '../../lib/parseMoneyInput';
 import {
   buildMsiExpenseSchema,
   type MsiExpenseFormValues,
 } from '../../lib/transactionDialogSchemas';
+import { formGlassFieldSx, formGlassOutlinedInputRoot } from './formGlassSx';
 
 export type MsiRegisterDialogProps = {
   open: boolean;
@@ -146,8 +147,8 @@ export function MsiRegisterDialog({
       },
       {
         loadingMessage: 'Registrando compra MSI…',
-        successMessage: VI_SUCCESS_MESSAGE,
-        successDescription: `MSI ${values.totalInstallments} meses${acc ? ` · ${acc.name}` : ''} · ${values.concept.trim()}`,
+        successMessage: VI_SUCCESS_MSI_REGISTERED,
+        successDescription: `${values.totalInstallments} meses${acc ? ` · ${acc.name}` : ''} · ${values.concept.trim()}`,
       },
     );
     if (result !== undefined) {
@@ -222,6 +223,7 @@ export function MsiRegisterDialog({
                     label="Tarjeta de crédito"
                     error={Boolean(errors.accountId)}
                     helperText={errors.accountId?.message}
+                    sx={formGlassFieldSx}
                   />
                 )}
               />
@@ -244,6 +246,7 @@ export function MsiRegisterDialog({
                     label="Categoría"
                     error={Boolean(errors.categoryId)}
                     helperText={errors.categoryId?.message}
+                    sx={formGlassFieldSx}
                   />
                 )}
               />
@@ -266,6 +269,7 @@ export function MsiRegisterDialog({
                   const n = parseInt(e.target.value, 10);
                   field.onChange(Number.isFinite(n) ? n : 0);
                 }}
+                sx={formGlassFieldSx}
               />
             )}
           />
@@ -288,28 +292,26 @@ export function MsiRegisterDialog({
                   helperText={errors.amount?.message}
                   fullWidth
                   value={amtStr}
-                  onChange={(e) => {
-                    let v = e.target.value;
-                    v = v.replace(/,/g, '.');
-                    field.onChange(v);
+                  onChange={(e) => field.onChange(normalizeMoneyInputTyping(e.target.value))}
+                  onFocus={(e) => {
+                    const el = e.target as HTMLInputElement;
+                    if (el.value === '') {
+                      requestAnimationFrame(() => el.setSelectionRange(0, 0));
+                    }
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
+                      ...formGlassOutlinedInputRoot,
                       ...(hasTyping && !hasErr
                         ? {
-                            '& fieldset': {
-                              borderColor: 'rgba(59, 130, 246, 0.55)',
+                            '& fieldset': { borderColor: 'rgba(59, 130, 246, 0.55)' },
+                            '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': {
+                              borderColor: 'rgba(59, 130, 246, 0.45)',
                             },
                           }
                         : {}),
-                      '&.Mui-focused:not(.Mui-error) fieldset': {
-                        borderColor: '#3b82f6',
-                        boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.35)',
-                      },
-                      '&:hover:not(.Mui-error):not(.Mui-focused) fieldset': hasTyping
-                        ? { borderColor: 'rgba(59, 130, 246, 0.45)' }
-                        : {},
                     },
+                    '& .MuiInputLabel-root': { color: 'text.secondary' },
                   }}
                 />
               );
@@ -326,19 +328,29 @@ export function MsiRegisterDialog({
                 error={Boolean(errors.concept)}
                 helperText={errors.concept?.message}
                 fullWidth
+                sx={formGlassFieldSx}
               />
             )}
           />
           <Controller
             name="notes"
             control={control}
-            render={({ field }) => <TextField {...field} label="Notas (opcional)" fullWidth />}
+            render={({ field }) => (
+              <TextField {...field} label="Notas (opcional)" fullWidth sx={formGlassFieldSx} />
+            )}
           />
           <Controller
             name="occurredAt"
             control={control}
             render={({ field }) => (
-              <TextField {...field} type="date" label="Fecha de compra" InputLabelProps={{ shrink: true }} fullWidth />
+              <TextField
+                {...field}
+                type="date"
+                label="Fecha de compra"
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                sx={formGlassFieldSx}
+              />
             )}
           />
           <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center" sx={{ pt: 1 }}>
@@ -366,7 +378,7 @@ export function MsiRegisterDialog({
               type="submit"
               variant="contained"
               disabled={!isValid || isSubmitting}
-              startIcon={<CheckCircleOutlineIcon />}
+              startIcon={<CheckIcon />}
               sx={{
                 fontWeight: 700,
                 textTransform: 'none',
@@ -396,9 +408,15 @@ export function MsiRegisterDialog({
           bgcolor: (t) => (t.palette.mode === 'dark' ? 'action.selected' : 'grey.50'),
           borderTop: 1,
           borderColor: 'divider',
+          justifyContent: 'flex-start',
         }}
       >
-        <Button onClick={onClose} color="inherit" fullWidth variant="outlined">
+        <Button
+          onClick={onClose}
+          color="inherit"
+          variant="text"
+          sx={{ textTransform: 'none', fontWeight: 500, color: 'text.secondary' }}
+        >
           Cerrar
         </Button>
       </DialogActions>

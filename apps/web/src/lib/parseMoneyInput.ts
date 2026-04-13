@@ -1,4 +1,12 @@
 /**
+ * Durante el tecleo: convierte comas en puntos para un único separador decimal visible
+ * (coherente con `inputMode="decimal"` y teclados que envían coma).
+ */
+export function normalizeMoneyInputTyping(value: string): string {
+  return value.replace(/,/g, '.');
+}
+
+/**
  * Convierte texto de monto a número: acepta punto (.) como decimal;
  * la coma (,) se trata como separador decimal si no hay punto, o se elimina como miles.
  */

@@ -1,5 +1,5 @@
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { Button, type ButtonProps } from '@mui/material';
 import type { ReactNode } from 'react';
@@ -7,26 +7,26 @@ import type { ReactNode } from 'react';
 export type OperationVariant = 'expense' | 'income' | 'transfer';
 
 export type CustomButtonProps = Omit<ButtonProps, 'color' | 'variant'> & {
-  /** Gasto (carmesí), Ingreso (esmeralda), Transferencia (info). */
+  /** Gasto (azul Vidya), Ingreso (esmeralda), Transferencia (info). */
   operationVariant: OperationVariant;
   variant?: ButtonProps['variant'];
 };
 
 const iconByOp: Record<OperationVariant, ReactNode> = {
-  expense: <RemoveCircleOutlineIcon fontSize="small" />,
+  expense: <ReceiptLongIcon fontSize="small" />,
   income: <AddCircleOutlineIcon fontSize="small" />,
   transfer: <SwapHorizIcon fontSize="small" />,
 };
 
 const expenseSx = {
-  border: '1px solid rgba(244, 63, 94, 0.45)',
-  background: 'linear-gradient(145deg, rgba(244,63,94,0.18) 0%, rgba(190,18,60,0.1) 100%)',
-  color: '#fecdd3',
-  boxShadow: '0 0 22px rgba(244, 63, 94, 0.28), inset 0 1px 0 rgba(255,255,255,0.06)',
+  border: '1px solid rgba(59, 130, 246, 0.5)',
+  background: 'linear-gradient(145deg, #3b82f6 0%, #2563eb 55%, #5b21b6 100%)',
+  color: '#f8fafc',
+  boxShadow: '0 4px 18px rgba(59, 130, 246, 0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
   '&:hover': {
-    borderColor: 'rgba(244, 63, 94, 0.75)',
-    background: 'linear-gradient(145deg, rgba(244,63,94,0.28) 0%, rgba(190,18,60,0.16) 100%)',
-    boxShadow: '0 0 32px rgba(244, 63, 94, 0.42)',
+    borderColor: 'rgba(96, 165, 250, 0.85)',
+    background: 'linear-gradient(145deg, #60a5fa 0%, #3b82f6 50%, #6d28d9 100%)',
+    boxShadow: '0 8px 28px rgba(59, 130, 246, 0.55)',
   },
 };
 

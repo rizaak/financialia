@@ -2,13 +2,15 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import type { CategoryRow } from '../api/categoryTypes';
 import { fetchAccounts, type AccountRow } from '../api/fetchAccounts';
 import { useTransactions } from '../hooks/useTransactions';
-import { VI_SUCCESS_MESSAGE } from '../config/brandConfig';
+import { VI_SUCCESS_EXPENSE_REGISTERED, VI_SUCCESS_INCOME_REGISTERED } from '../config/brandConfig';
+import { normalizeMoneyInputTyping, parseMoneyInput } from '../lib/parseMoneyInput';
 import { localDateInputToIsoMidday } from '../lib/localCalendarRange';
 import { AccountSelector } from './AccountSelector';
+import { Plus, Receipt } from 'lucide-react';
 import { Spinner } from './ui/spinner';
 
 const inputClass =
-  'mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2';
+  'mt-1 w-full rounded-lg border border-zinc-200/70 bg-white/50 px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none backdrop-blur-sm placeholder:text-zinc-400 focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/30';
 
 function todayInputDate(): string {
   const d = new Date();
@@ -94,7 +96,7 @@ export function QuickExpenseForm({
       setError('Elige una categoría.');
       return;
     }
-    const amt = Number(amount.replace(/,/g, ''));
+    const amt = parseMoneyInput(amount);
     if (!Number.isFinite(amt) || amt <= 0) {
       setError('Monto inválido.');
       return;
@@ -121,8 +123,8 @@ export function QuickExpenseForm({
         },
         {
           loadingMessage: 'Guardando movimiento…',
-          successMessage: VI_SUCCESS_MESSAGE,
-          successDescription: `${isExpense ? 'Gasto' : 'Ingreso'} en ${accName}: ${c}`,
+          successMessage: isExpense ? VI_SUCCESS_EXPENSE_REGISTERED : VI_SUCCESS_INCOME_REGISTERED,
+          successDescription: `${c} · ${accName}`,
         },
       );
       if (result !== undefined) {
@@ -224,10 +226,11 @@ export function QuickExpenseForm({
             id="qe-amt"
             type="text"
             inputMode="decimal"
+            autoComplete="off"
             className={inputClass}
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="350.50"
+            onChange={(e) => setAmount(normalizeMoneyInputTyping(e.target.value))}
+            placeholder="$0.00"
             disabled={submitting}
           />
         </div>
@@ -279,13 +282,11 @@ export function QuickExpenseForm({
           <button
             type="submit"
             disabled={submitting}
-            className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow disabled:opacity-50 ${
-              isExpense
-                ? 'bg-emerald-700 hover:bg-emerald-800'
-                : 'bg-sky-700 hover:bg-sky-800'
-            }`}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#3b82f6] to-[#2563eb] px-3 py-2 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(59,130,246,0.45)] hover:from-[#60a5fa] hover:to-[#3b82f6] disabled:opacity-50"
           >
             {submitting ? <Spinner className="text-white" /> : null}
+            {!submitting && isExpense ? <Receipt size={18} strokeWidth={2} aria-hidden /> : null}
+            {!submitting && !isExpense ? <Plus size={18} strokeWidth={2} aria-hidden /> : null}
             {submitting
               ? 'Guardando…'
               : isExpense
