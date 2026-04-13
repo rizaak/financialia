@@ -21,6 +21,7 @@ import {
 } from '../api/fetchRecurringExpenses';
 import { AdjustInstallmentPlanDialog } from '../components/commitments/AdjustInstallmentPlanDialog';
 import { AdjustSubscriptionDialog } from '../components/commitments/AdjustSubscriptionDialog';
+import { InstallmentProgressCell } from '../components/commitments/InstallmentProgressCell';
 import { formatMoney } from '../lib/formatMoney';
 import { formatDashboardLoadError } from '../lib/formatDashboardLoadError';
 import type { ShellOutletContext } from '../layouts/shellContext';
@@ -159,13 +160,14 @@ export function CommitmentsPage() {
                 <TableCell align="right">Cuota / mes</TableCell>
                 <TableCell align="center">Restantes</TableCell>
                 <TableCell align="right">Pendiente</TableCell>
+                <TableCell align="center">Progreso</TableCell>
                 <TableCell align="right" />
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     <Typography variant="body2" color="text.secondary">
                       Cargando…
                     </Typography>
@@ -173,7 +175,7 @@ export function CommitmentsPage() {
                 </TableRow>
               ) : msi.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     <Typography variant="body2" color="text.secondary">
                       No hay planes a meses activos.
                     </Typography>
@@ -187,6 +189,9 @@ export function CommitmentsPage() {
                     <TableCell align="right">{formatMoney(row.monthlyAmount, row.currency)}</TableCell>
                     <TableCell align="center">{row.remainingInstallments}</TableCell>
                     <TableCell align="right">{formatMoney(row.remainingToPay, row.currency)}</TableCell>
+                    <TableCell align="center">
+                      <InstallmentProgressCell row={row} />
+                    </TableCell>
                     <TableCell align="right">
                       <Button size="small" variant="outlined" onClick={() => setMsiEdit(row)}>
                         Ajustar

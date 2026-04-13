@@ -3,6 +3,7 @@ import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AccountsService } from './accounts.service';
 import { CreditCardStatementService } from './credit-card-statement.service';
 import { CreateAccountDto } from './dto/create-account.dto';
+import { CreateCashAdvanceInstallmentDto } from './dto/create-cash-advance-installment.dto';
 import { CreateInstallmentPlanDto } from './dto/create-installment-plan.dto';
 import { SyncBalanceDto } from './dto/sync-balance.dto';
 import { MoveToCajitaDto } from './dto/move-to-cajita.dto';
@@ -114,5 +115,15 @@ export class AccountsController {
     @Body() dto: CreateInstallmentPlanDto,
   ) {
     return this.installmentPlans.create(userId, accountId, dto);
+  }
+
+  /** Disposición de efectivo / retiro en cajero con mensualidades y acreditación en cuenta líquida. */
+  @Post(':accountId/cash-advance-installment')
+  createCashAdvanceInstallment(
+    @CurrentUser('id') userId: string,
+    @Param('accountId') accountId: string,
+    @Body() dto: CreateCashAdvanceInstallmentDto,
+  ) {
+    return this.installmentPlans.createCashAdvanceInstallment(userId, accountId, dto);
   }
 }

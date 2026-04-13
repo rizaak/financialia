@@ -1,12 +1,13 @@
 import { Fab, Menu, MenuItem, useTheme } from '@mui/material';
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { ArrowLeftRight, CalendarClock, Plus, Receipt, Repeat, TrendingUp } from 'lucide-react';
+import { ArrowLeftRight, Banknote, CalendarClock, Plus, Receipt, Repeat, TrendingUp } from 'lucide-react';
 import type { CategoryRow } from '../../api/categoryTypes';
 import { fetchAccounts, type AccountRow } from '../../api/fetchAccounts';
 import { fetchCategories } from '../../api/fetchCategories';
 import { listTransactions, TRANSACTION_LIST_MAX } from '../../api/fetchTransactions';
 import { buildExpenseCategoryUsageOrder } from '../../lib/expenseCategoryUsage';
 import { formatDashboardLoadError } from '../../lib/formatDashboardLoadError';
+import { CashAdvanceRegisterDialog } from '../shared/CashAdvanceRegisterDialog';
 import { MsiRegisterDialog } from '../shared/MsiRegisterDialog';
 import { NewSubscriptionDialog } from '../shared/NewSubscriptionDialog';
 import { TransactionDialog, type TransactionDialogMode } from '../shared/TransactionDialog';
@@ -27,6 +28,7 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
   const [fabDialog, setFabDialog] = useState<
     | { type: 'transaction'; mode: TransactionDialogMode }
     | { type: 'msi' }
+    | { type: 'cashAdvance' }
     | { type: 'subscription' }
     | null
   >(null);
@@ -76,6 +78,14 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
       return;
     }
     setFabDialog({ type: 'msi' });
+  }
+
+  function openCashAdvanceDialog() {
+    closeMenu();
+    if (loadError && accounts.length === 0) {
+      return;
+    }
+    setFabDialog({ type: 'cashAdvance' });
   }
 
   function openSubscriptionDialog() {
@@ -154,6 +164,15 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           Registrar MSI
         </MenuItem>
         <MenuItem
+          onClick={() => openCashAdvanceDialog()}
+          disabled={Boolean(loadError) && accounts.length === 0}
+        >
+          <span className="mr-2 inline-flex text-cyan-400">
+            <Banknote size={18} />
+          </span>
+          Efectivo inmediato / Cajero
+        </MenuItem>
+        <MenuItem
           onClick={() => openSubscriptionDialog()}
           disabled={Boolean(loadError) && accounts.length === 0}
         >
@@ -188,6 +207,19 @@ export function ShellQuickActionsFab({ getAccessToken, defaultCurrency }: Props)
           accounts={accounts}
           defaultCurrency={defaultCurrency}
           expenseCategoryUsageOrder={expenseCategoryUsageOrder}
+          onSaved={async () => {
+            await load();
+          }}
+        />
+      ) : null}
+      {fabDialog?.type === 'cashAdvance' ? (
+        <CashAdvanceRegisterDialog
+          open
+          onClose={closeDialog}
+          getAccessToken={getAccessToken}
+          categories={categories}
+          accounts={accounts}
+          defaultCurrency={defaultCurrency}
           onSaved={async () => {
             await load();
           }}
