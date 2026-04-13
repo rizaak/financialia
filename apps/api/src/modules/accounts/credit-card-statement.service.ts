@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { AccountType, Prisma } from '@prisma/client';
+import { AccountType, Prisma, TransactionType } from '@prisma/client';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { AccountsService, type StatementPaymentBreakdown } from './accounts.service';
 import { addUtcDays, closingEndOfDayUtc, startOfUtcDay } from './credit-card-period.utils';
@@ -24,6 +24,10 @@ export type CreditCardStatementDto = {
   lastStatementClosingDate: string | null;
   lastClosedStatementBalance: string;
   lastClosedStatementPaymentAmount: string;
+  /** Abonos (transferencias + ingresos) a la tarjeta posteriores al último corte. */
+  paymentsAppliedSinceLastClosing: string;
+  /** Pendiente del cierre para evitar intereses tras descontar abonos (≥ 0). */
+  remainingLastStatementPaymentAmount: string;
   lastStatementPaymentDueDate: string | null;
   inPaymentWindow: boolean;
   paymentPastDue: boolean;
@@ -101,6 +105,8 @@ export class CreditCardStatementService {
     let lastStatementPaymentDueDate: string | null = null;
     let lastClosedStatementBalance = new Prisma.Decimal(0);
     let lastClosedStatementPaymentAmount = new Prisma.Decimal(0);
+    let paymentsAppliedSinceLastClosing = new Prisma.Decimal(0);
+    let remainingLastStatementPaymentAmount = new Prisma.Decimal(0);
 
     if (statementClosedThisMonth) {
       const pm = m === 0 ? 11 : m - 1;
@@ -120,6 +126,33 @@ export class CreditCardStatementService {
         thisMonthClosing,
         cc.paymentDueDaysAfterClosing,
       ).toISOString();
+
+      const [transferPaid, incomePaid] = await Promise.all([
+        this.prisma.transfer.aggregate({
+          where: {
+            userId,
+            destinationAccountId: accountId,
+            occurredAt: { gt: thisMonthClosing },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: {
+            userId,
+            accountId,
+            type: TransactionType.INCOME,
+            occurredAt: { gt: thisMonthClosing },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+      const tp = new Prisma.Decimal(transferPaid._sum.amount ?? 0);
+      const ip = new Prisma.Decimal(incomePaid._sum.amount ?? 0);
+      paymentsAppliedSinceLastClosing = tp.plus(ip);
+      remainingLastStatementPaymentAmount = Prisma.Decimal.max(
+        new Prisma.Decimal(0),
+        lastClosedStatementPaymentAmount.minus(paymentsAppliedSinceLastClosing),
+      );
     }
 
     let inPaymentWindow = false;
@@ -165,6 +198,8 @@ export class CreditCardStatementService {
       lastStatementClosingDate,
       lastClosedStatementBalance: lastClosedStatementBalance.toString(),
       lastClosedStatementPaymentAmount: lastClosedStatementPaymentAmount.toString(),
+      paymentsAppliedSinceLastClosing: paymentsAppliedSinceLastClosing.toString(),
+      remainingLastStatementPaymentAmount: remainingLastStatementPaymentAmount.toString(),
       lastStatementPaymentDueDate,
       inPaymentWindow,
       paymentPastDue,
